@@ -1,0 +1,241 @@
+"""
+PDF Generator service for creating customer reports
+"""
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict
+from reportlab.lib.pagesizes import letter, A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Font registration for Cyrillic support
+def register_cyrillic_fonts():
+    """Register DejaVu fonts with Cyrillic support"""
+    dejavu_paths = {
+        'DejaVuSans': '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        'DejaVuSans-Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    }
+    
+    for font_name, font_path in dejavu_paths.items():
+        if os.path.exists(font_path):
+            try:
+                pdfmetrics.registerFont(TTFont(font_name, font_path))
+                logger.info(f"Registered font: {font_name}")
+            except Exception as e:
+                logger.error(f"Failed to register font {font_name}: {e}")
+    
+    return True
+
+# Register fonts at module load
+register_cyrillic_fonts()
+
+
+class PDFGenerator:
+    """Generate PDF reports for customers"""
+    
+    def __init__(self, temp_dir: Path):
+        """
+        Initialize PDF generator
+        
+        Args:
+            temp_dir: Directory to store temporary PDF files
+        """
+        self.temp_dir = temp_dir
+        self.temp_dir.mkdir(exist_ok=True)
+    
+    def generate_customer_report(
+        self,
+        customer_data: Dict,
+        combined_data: List[Dict] = None,
+        summary: Dict = None
+    ) -> Path:
+        """
+        Generate customer report PDF with combined orders and payments
+        
+        Args:
+            customer_data: Customer information
+            combined_data: Combined orders and payments list with cumulative debt
+            summary: Summary information (optional)
+            
+        Returns:
+            Path to generated PDF file
+        """
+        if combined_data is None:
+            combined_data = []
+        if summary is None:
+            summary = {}
+        
+        filename = f"report_{customer_data['phone']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        filepath = self.temp_dir / filename
+        
+        # Create PDF (Landscape orientation)
+        doc = SimpleDocTemplate(
+            str(filepath),
+            pagesize=landscape(A4),
+            rightMargin=0.4*inch,
+            leftMargin=0.4*inch,
+            topMargin=0.4*inch,
+            bottomMargin=0.4*inch
+        )
+        
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.HexColor('#1f4788'),
+            spaceAfter=6,
+            alignment=1,  # center
+            fontName='DejaVuSans-Bold'
+        )
+        elements.append(Paragraph("BUYURTMALAR VA QARZYLIK HISOBOTI", title_style))
+        elements.append(Spacer(1, 0.2*inch))
+        
+        # Customer Info
+        customer_info_style = ParagraphStyle(
+            'CustomerInfo',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.black,
+            spaceAfter=3,
+            fontName='DejaVuSans'
+        )
+        customer_info = f"""
+        <b>Mijoz nomi:</b> {customer_data['name']}<br/>
+        <b>Telefon:</b> {customer_data['phone']}<br/>
+        <b>Manzil:</b> {customer_data['address']}<br/>
+        <b>Vaqt:</b> {datetime.now().strftime('%Y-%m-%d %H:%M')}
+        """
+        elements.append(Paragraph(customer_info, customer_info_style))
+        elements.append(Spacer(1, 0.15*inch))
+        
+        # Calculate starting and current debt
+        if combined_data:
+            first_transaction = combined_data[0]
+            last_transaction = combined_data[-1]
+            
+            # Starting debt (before first transaction)
+            if first_transaction['type'] == 'order':
+                eski_qarzdorlik = first_transaction['cumulative_debt'] - first_transaction['remaining_debt']
+            else:  # payment
+                eski_qarzdorlik = first_transaction['cumulative_debt'] + first_transaction['paid_amount']
+            
+            # Current debt (after last transaction)
+            hozirgi_qarz = last_transaction['cumulative_debt']
+        else:
+            eski_qarzdorlik = summary.get('total_debt', 0)
+            hozirgi_qarz = summary.get('total_debt', 0)
+        
+        # Display starting and current debt
+        debt_info_style = ParagraphStyle(
+            'DebtInfo',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor=colors.black,
+            spaceAfter=3,
+            fontName='DejaVuSans'
+        )
+        elements.append(Paragraph(f"<b>Eski qarzdorlik:</b> {eski_qarzdorlik:,} so'm", debt_info_style))
+        elements.append(Paragraph(f"<b>Hozirgi qarz:</b> {hozirgi_qarz:,} so'm", debt_info_style))
+        elements.append(Spacer(1, 0.12*inch))
+        
+        # Combined Transaction History with Cumulative Debt (Web App format)
+        if combined_data:
+            heading_style = ParagraphStyle(
+                'Heading2Custom',
+                parent=styles['Heading2'],
+                fontName='DejaVuSans-Bold'
+            )
+            elements.append(Paragraph("<b>BUYURTMALAR RO'YXATI</b>", heading_style))
+            elements.append(Spacer(1, 0.1*inch))
+            
+            # Header row: Sana | Mahsulot | Miqdori | Narxi | Jami | Qarz
+            transactions_data = [
+                ['Sana', 'Mahsulot', 'Miqdori', 'Narxi', 'Jami', 'Qarz'],
+            ]
+            
+            # Add each transaction
+            for transaction in combined_data:
+                if transaction['type'] == 'order':
+                    product = transaction['product']
+                    quantity = f"{transaction['quantity']:,}"
+                    price = f"{transaction['price_per_kg']:,}"
+                    total = f"{transaction['total_price']:,}"
+                    debt = f"{transaction['cumulative_debt']:,}"
+                    
+                    transactions_data.append([
+                        transaction['date'],
+                        product,
+                        quantity,
+                        price,
+                        total,
+                        debt,
+                    ])
+                else:
+                    # Payment transaction row
+                    payment_type = transaction['payment_type']
+                    transactions_data.append([
+                        transaction['date'],
+                        payment_type,
+                        '-',
+                        '-',
+                        f"{transaction['paid_amount']:,}",
+                        f"{transaction['cumulative_debt']:,}",
+                    ])
+            
+            # Create table with landscape widths
+            transactions_table = Table(transactions_data, colWidths=[1*inch, 2.5*inch, 1.2*inch, 1.2*inch, 1.5*inch, 1.5*inch])
+            
+            # Build table style
+            table_style_commands = [
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8eff5')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('TOPPADDING', (0, 0), (-1, 0), 6),
+                ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),    # Date - center
+                ('ALIGN', (1, 1), (1, -1), 'LEFT'),      # Type - left
+                ('ALIGN', (2, 1), (2, -1), 'CENTER'),    # Vehicle - center
+                ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),    # Numeric columns - right
+            ]
+            
+            # Color rows: light blue for orders, light green for payments
+            for idx, transaction in enumerate(combined_data, start=1):
+                if transaction['type'] == 'order':
+                    # Light blue for orders
+                    bg_color = colors.HexColor('#e3f2fd')
+                else:
+                    # Light green for payments
+                    bg_color = colors.HexColor('#e8f5e9')
+                
+                table_style_commands.append(('BACKGROUND', (0, idx), (-1, idx), bg_color))
+            
+            transactions_table.setStyle(TableStyle(table_style_commands))
+            elements.append(transactions_table)
+        else:
+            elements.append(Paragraph("Buyurtmalar topilmadi", styles['Normal']))
+        
+        # Build PDF
+        doc.build(elements)
+        
+        return filepath

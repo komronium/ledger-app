@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block content %}
+
+<div id="clientsContent">
+    <!-- Main card: list + filters together -->
+    <div id="invoice" class="modern-card rounded-2xl p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+            <h3 class="text-xl font-bold text-gray-800">Mijozlar</h3>
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('addClientModal').classList.remove('hidden')" class="gradient-bg text-white px-5 py-2.5 rounded-lg transition-all duration-300 font-semibold text-sm shadow-md">+ Yangi mijoz</button>
+                <button onclick="generatePDF()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 font-semibold text-sm shadow-md">Yuklash</button>
+            </div>
+        </div>
+
+        <!-- Inline filters -->
+        <div class="grid grid-cols-2 gap-3 mb-5">
+            <div class="relative">
+                <input type="text" id="filterClientNameSearch" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="Mijoz qidirish..." oninput="searchFilterClients()" onfocus="showFilterClientDropdown()" onblur="hideFilterClientDropdown()">
+                <div id="filterClientDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                <input oninput="setFilter()" type="hidden" id="selectedFilterClientId" name="customer_id" value="">
+            </div>
+            <select onchange="setFilter()" id="filterClientDebt" name="debt" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                <option value="">Barchasi</option>
+                <option value="with_debt" {% if request.GET.debt == 'with_debt' %}selected{% endif %}>Qarzi bor</option>
+                <option value="no_debt" {% if request.GET.debt == 'no_debt' %}selected{% endif %}>Qarzi yo'q</option>
+            </select>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full table-auto">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">#</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Ism</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Telefon</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Manzil</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Qarz</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600"></th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTable" class="divide-y divide-gray-100">
+                    {% for customer in customers %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600" onclick="window.location.href = `{% url 'dashboard' %}?customer_id={{ customer.id }}#invoice`">{{ customer.name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ customer.phone }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ customer.address }}</td>
+                        <td class="px-4 py-3 text-sm font-semibold {% if customer.total_debt <= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ customer.total_debt | format_currency }} so'm
+                        </td>
+                        <td class="hidden">{{ customer.id }}</td>
+                        <td class="px-4 py-2 text-sm">
+                            <button onclick="editClient(this)" class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-sm font-bold text-gray-800">JAMI:</td>
+                        <td class="px-4 py-3 text-sm font-bold text-red-600" id="totalClientsDebt">{{ total_debt | format_currency }} so'm</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Client Modal -->
+<div id="addClientModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl mx-4">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold text-gray-800">Yangi Mijoz Qo'shish</h2>
+            <button onclick="document.getElementById('addClientModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form action="{% url 'customer' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Ism</label>
+                    <input type="text" name="name" required class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="Mijoz nomi">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                    <input type="tel" name="phone" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="+998 90 123 45 67">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Manzil</label>
+                <input type="text" name="address" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="Manzilni kiriting">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Boshlang'ich qarz (ixtiyoriy)</label>
+                <input type="text" name="debt" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="0">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-1 gradient-bg text-white py-2.5 px-4 rounded-lg transition-all duration-300 font-semibold text-sm shadow-md">Saqlash</button>
+                <button type="button" onclick="document.getElementById('addClientModal').classList.add('hidden')" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-300 font-medium text-sm">Bekor qilish</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div id="editClientModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl mx-4">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold text-gray-800">Mijozni Tahrirlash</h2>
+            <button onclick="cancelClientEdit()" class="text-gray-400 hover:text-gray-600 p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form action="{% url 'customer' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="_method" value="PUT">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Ism</label>
+                    <input type="text" name="name" id="editClientName" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                    <input type="tel" name="phone" id="editClientPhone" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Manzil</label>
+                <input type="text" name="address" id="editClientAddress" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Qarz summasi</label>
+                <input type="text" name="debt" id="editClientDebt" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-sm">Saqlash</button>
+                <button type="button" onclick="deleteCustomer(this)" class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 font-semibold text-sm">O'chirish</button>
+                <button type="button" onclick="cancelClientEdit()" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-300 font-medium text-sm">Bekor</button>
+            </div>
+            <input type="hidden" id="editClientID" name="id">
+        </form>
+    </div>
+</div>
+
+<script>
+    function deleteCustomer(button) {
+        const confirmation = confirm("Mijozni o'chirishni xohlaysizmi?");
+        const customer_id = button.parentElement.parentElement.querySelector('input[name="id"]').value;
+
+        if (confirmation) {
+            console.log(`/customer/delete/${customer_id}/`);
+            fetch(`/customer/delete/${customer_id}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert("Mijozni o'chirishda xatolik yuz berdi.");
+                }
+            })
+        }
+    }
+
+    function setFilter(){
+        const ClientName = document.getElementById('selectedFilterClientId');
+        const ClientDebt = document.getElementById('filterClientDebt');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('id', ClientName.value);
+        urlParams.set('debt', ClientDebt.value);
+
+        window.location.search = urlParams.toString();
+    }
+
+    function generatePDF() {
+    const element = document.getElementById("invoice");
+
+    const opt = {
+        margin:       0,
+        filename:     'document.pdf',
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  {
+            scale: 2,
+            useCORS: true, // agar rasm bo'lsa
+            logging: true,
+            scrollY: 0, // skrollni hisobga olmasin
+            windowWidth: document.body.scrollWidth,
+            windowHeight: document.body.scrollHeight,
+        },
+        jsPDF:        {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'landscape' // <-- bu albom ko‘rinish uchun
+        }
+    };
+        html2pdf().set(opt).from(element).save();
+}
+
+function editClient(button) {
+    row = button.parentElement.parentElement.parentElement;
+    const name = row.children[1].innerText;
+    const phone = row.children[2].innerText;
+    const address = row.children[3].innerText;
+    const debt = row.children[4].innerText.replace(/\D/g, '');
+    const customer_id = row.children[5].innerText;
+
+    document.getElementById('editClientName').value = name;
+    document.getElementById('editClientPhone').value = phone;
+    document.getElementById('editClientAddress').value = address;
+    document.getElementById('editClientDebt').value = debt;
+    document.getElementById('editClientID').value = customer_id;
+    document.getElementById('editClientModal').classList.remove('hidden');
+}
+
+function cancelClientEdit() {
+    document.getElementById('editClientModal').classList.add('hidden');
+    currentEditingClientId = null;
+}
+
+function searchFilterClients() {
+            const searchTerm = document.getElementById('filterClientNameSearch').value.toLowerCase();
+            const dropdown = document.getElementById('filterClientDropdown');
+            
+            if (searchTerm.length === 0) {
+                dropdown.innerHTML = '';
+                dropdown.classList.add('hidden');
+                // Clear filter when search is empty
+                document.getElementById('selectedFilterClientId').value = '';
+                setFilter();
+                return;
+            }
+            
+            const filteredClients = clients.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                client.phone.includes(searchTerm)
+            );
+            
+            dropdown.innerHTML = '';
+            
+            // Add "Barcha mijozlar" option
+            const allOption = document.createElement('div');
+            allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
+            allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
+            allOption.onclick = () => selectFilterClient(null);
+            dropdown.appendChild(allOption);
+            
+            if (filteredClients.length === 0) {
+                dropdown.innerHTML += '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
+            } else {
+                filteredClients.forEach(client => {
+                    const option = document.createElement('div');
+                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                    option.onclick = () => selectFilterClient(client);
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectFilterClient(client) {
+            if (client === null) {
+                // "Barcha mijozlar" selected
+                document.getElementById('filterClientNameSearch').value = '';
+                document.getElementById('selectedFilterClientId').value = ''
+                setFilter();
+            } else {
+                document.getElementById('filterClientNameSearch').value = client.name;
+                document.getElementById('selectedFilterClientId').value = client.id;
+                setFilter();
+            }
+            document.getElementById('filterClientDropdown').classList.add('hidden');
+        }
+
+        function showFilterClientDropdown() {
+            const searchTerm = document.getElementById('filterClientNameSearch').value;
+            if (searchTerm.length > 0) {
+                searchFilterClients();
+            } else {
+                // Show all clients when focused with empty search
+                const dropdown = document.getElementById('filterClientDropdown');
+                dropdown.innerHTML = '';
+                
+                // Add "Barcha mijozlar" option
+                const allOption = document.createElement('div');
+                allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
+                allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
+                allOption.onclick = () => selectFilterClient(null);
+                dropdown.appendChild(allOption);
+                
+                // Add all clients
+                clients.forEach(client => {
+                    const option = document.createElement('div');
+                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                    option.onclick = () => selectFilterClient(client);
+                    dropdown.appendChild(option);
+                });
+                
+                dropdown.classList.remove('hidden');
+            }
+        }
+
+        function hideFilterClientDropdown() {
+            setTimeout(() => {
+                document.getElementById('filterClientDropdown').classList.add('hidden');
+            }, 200);
+        }
+
+        let clients = [
+            {% for customer in all_customers %}
+                {'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}'},
+            {% endfor %}
+        ]
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block content %}
+        <div id="ordersContent">
+            <!-- Add New Orders -->
+            <div class="modern-card rounded-2xl p-6 mb-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">Yangi Buyurtma</h2>
+                <form id="batchOrderForm" action="{% url 'dashboard' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="orders_json" id="ordersJsonInput" value="[]">
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Mijoz</label>
+                            <div class="relative">
+                                <input type="text" id="clientSearch" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="Qidirish..." oninput="searchClients()" onfocus="showClientDropdown()" onblur="hideClientDropdown()">
+                                <div id="clientDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                            </div>
+                            <input type="hidden" id="selectedClientId" value="">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Mahsulot</label>
+                            <select id="productSelect" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                                <option value="">Tanlang</option>
+                                {% for product in products %}
+                                    <option value="{{ product.id }}" data-name="{{ product.name }}">{{ product.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Miqdori</label>
+                            <input type="number" id="quantity" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="0" oninput="calculateTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Narxi</label>
+                            <input type="number" id="price" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="0" oninput="calculateTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Jami</label>
+                            <input type="text" id="grandTotal" class="w-full p-2.5 border border-blue-200 rounded-lg bg-blue-50 text-blue-800 font-semibold text-sm" readonly>
+                        </div>
+                        <div>
+                            <button type="button" onclick="addOrderToList()" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white p-2.5 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold text-sm">+ Qo'shish</button>
+                        </div>
+                    </div>
+
+                    <!-- Pending orders -->
+                    <div id="pendingOrdersContainer" class="hidden mt-4">
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <h3 class="text-sm font-bold text-gray-700 mb-2">Kutilayotgan buyurtmalar</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full table-auto">
+                                    <thead class="bg-green-100">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Mijoz</th>
+                                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Mahsulot</th>
+                                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Miqdori</th>
+                                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Narxi</th>
+                                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Jami</th>
+                                            <th class="px-3 py-2"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pendingOrdersBody" class="divide-y divide-green-200"></tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3 flex justify-end">
+                                <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-sm shadow-md">Barchasini Saqlash</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Orders List -->
+            <div id="invoice" class="modern-card rounded-2xl p-6 card-hover">
+                <div id="orderList" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">
+                            Buyurtmalar Ro'yxati
+                        </h3>
+                        {% if customer %}
+                        <p class="mt-1 text-sm text-gray-500">
+                            <span class="font-medium text-gray-700">{{ customer.name }}</span>
+                            <span class="mx-2">·</span>
+                            Eski qarz: <span class="text-red-600 font-semibold">{{ customer.default_debt|format_currency }} so'm</span>
+                        </p>
+                        {% endif %}
+                    </div>
+                    <button onclick="generatePDF()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-lg text-sm hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 font-semibold shadow-md shrink-0">Hisobotni Yuklash</button>
+                </div>
+
+                <!-- Filters (inline) -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                    <div class="relative">
+                        <input type="text" id="filterClientNameSearch" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" placeholder="Mijoz bo'yicha..." oninput="searchFilterClients()" onfocus="showFilterClientDropdown()" onblur="hideFilterClientDropdown()">
+                        <div id="filterClientDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                        <input oninput="setFilter()" type="hidden" id="selectedFilterClientId" name="customer_id" value="">
+                    </div>
+                    <select onchange="setFilter()" id="filterProduct" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                        <option value="">Barcha mahsulotlar</option>
+                        {% for product in products %}
+                            <option value="{{ product.id }}" {% if request.GET.product_id == product.id|slugify %}selected{%endif %}>{{ product.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="date" onchange="setFilter()" value="{% if request.GET.date_from %}{{ request.GET.date_from }}{% else %}{{ today }}{% endif %}" id="filterDateFrom" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                    <input type="date" onchange="setFilter()" value="{% if request.GET.date_to %}{{ request.GET.date_to }}{% else %}{{ today }}{% endif %}" id="filterDateTo" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead class="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl">
+                            <tr>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800 rounded-tl-2xl">Sana</th>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800">Mijoz</th>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800">Mahsulot</th>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800">Miqdori</th>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800">Narxi</th>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800">Jami</th>
+                                <th class="px-3 py-4 text-left text-sm font-bold text-gray-800">Qarz</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTable" class="divide-y divide-gray-300 font-medium">
+                            {% for order in orders %}
+                                <tr {% if order.type == 'order' %}onclick="window.location.href = `{% url 'order_edit' order.id %}`"{% endif %} 
+                                    class="hover:bg-gray-100 cursor-pointer {% if order.type == 'payment' %}bg-green-50 hover:bg-green-100{% endif %}">
+                                    <td class="px-4 py-3 text-gray-700 whitespace-nowrap" style="font-size: 0.8rem">
+                                        {{ order.order_date|date:"d-m" }}<br>{{ order.order_date|date:"Y" }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                        {{ order.customer.name }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                        {% if order.type == 'order' and order.product %}
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-gray-700">{{ order.product.name }}</span>
+                                            <div class="w-4 h-4 rounded-full border-2 border-gray-300" style="background-color: {{ order.product.color }}"></div>
+                                        </div>
+                                        {% elif order.type == 'payment' %}
+                                        <span class="text-green-600 font-semibold">To'lov</span>
+                                        {% endif %}
+                                    </td>
+                                    {% if order.type == 'order' %}
+                                    <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                            {{ order.quantity|format_currency }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                            {{ order.price_per_kg|format_currency }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                            {{ order.total_price|format_currency }}
+                                    </td>
+                                    {% else %}
+                                    <td colspan="2" class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                        {{order.comment}}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-green-600 font-semibold whitespace-nowrap">
+                                        {{ order.paid_amount|format_currency }}
+                                    </td>
+                                    {% endif %}
+                                    {% if order.remaining_debt > 0 %}
+                                    <td class="px-4 py-3 text-sm whitespace-nowrap text-red-700">
+                                            {{ order.remaining_debt | format_currency }}
+                                    </td>
+                                    {% elif order.remaining_debt <= 0 %}
+                                    <td class="px-4 py-3 text-sm whitespace-nowrap text-green-700">
+                                            {{ order.remaining_debt | format_currency }}
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-gradient-to-r from-blue-100 to-indigo-100">
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-sm font-bold text-gray-800">JAMI:</td>
+                                <td class="px-4 py-4 text-sm font-bold text-gray-800 whitespace-nowrap">{{total_quantity | format_currency}}</td>
+                                <td class="px-4 py-4 text-sm font-bold text-gray-800"></td>
+                                <td class="px-4 py-4 text-sm font-bold text-green-600 whitespace-nowrap">{{total_price| format_currency}}</td>
+                                {% if customer %} 
+                                    {% if customer.total_debt > 0 %}
+                                    <td class="px-4 py-4 text-sm font-bold text-red-600 whitespace-nowrap">{{ customer.total_debt|format_currency }}</td>
+                                    {% else %}
+                                    <td class="px-4 py-4 text-sm font-bold text-green-600 whitespace-nowrap">{{ customer.total_debt|format_currency }}</td>
+                                    {% endif %}
+                                {% else %}
+                                    <td class="px-4 py-4 text-sm font-bold text-red-600 whitespace-nowrap">{{ total_debt|format_currency }}</td>
+                                {% endif %}
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        let pendingOrders = [];
+
+        function calculateTotal() {
+            const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const total = quantity * price;
+            document.getElementById('grandTotal').value = total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+
+        function addOrderToList() {
+            const clientId = document.getElementById('selectedClientId').value;
+            const clientName = document.getElementById('clientSearch').value;
+            const productSelect = document.getElementById('productSelect');
+            const productId = productSelect.value;
+            const productName = productSelect.options[productSelect.selectedIndex]?.dataset?.name || '';
+            const quantity = parseInt(document.getElementById('quantity').value) || 0;
+            const price = parseInt(document.getElementById('price').value) || 0;
+
+            if (!clientId || !productId || !quantity || !price) {
+                alert("Barcha maydonlarni to'ldiring!");
+                return;
+            }
+
+            const total = quantity * price;
+            pendingOrders.push({
+                customer_id: clientId,
+                customer_name: clientName,
+                product_id: productId,
+                product_name: productName,
+                quantity: quantity,
+                price_per_kg: price,
+                total: total
+            });
+
+            renderPendingOrders();
+            // Clear inputs except client
+            document.getElementById('quantity').value = '';
+            document.getElementById('price').value = '';
+            document.getElementById('grandTotal').value = '';
+        }
+
+        function removeOrder(index) {
+            pendingOrders.splice(index, 1);
+            renderPendingOrders();
+        }
+
+        function renderPendingOrders() {
+            const container = document.getElementById('pendingOrdersContainer');
+            const tbody = document.getElementById('pendingOrdersBody');
+            const jsonInput = document.getElementById('ordersJsonInput');
+
+            if (pendingOrders.length === 0) {
+                container.classList.add('hidden');
+                jsonInput.value = '[]';
+                return;
+            }
+
+            container.classList.remove('hidden');
+            tbody.innerHTML = '';
+
+            pendingOrders.forEach((order, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-sm text-gray-900">${order.customer_name}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${order.product_name}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${order.quantity.toLocaleString()}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${order.price_per_kg.toLocaleString()}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-blue-700">${order.total.toLocaleString()}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <button type="button" onclick="removeOrder(${index})" class="text-red-600 hover:text-red-800 font-medium">O'chirish</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            jsonInput.value = JSON.stringify(pendingOrders.map(o => ({
+                customer_id: o.customer_id,
+                product_id: o.product_id,
+                quantity: o.quantity,
+                price_per_kg: o.price_per_kg
+            })));
+        }
+
+        function setFilter(){
+            const clientSelect = document.getElementById('selectedFilterClientId');
+            const productSelect = document.getElementById('filterProduct');
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('customer_id', clientSelect.value);
+            urlParams.set('product_id', productSelect.value);
+            urlParams.set('date_from', dateFrom);
+            urlParams.set('date_to', dateTo);
+
+            window.location.search = urlParams.toString();
+        }
+
+        let clients = [
+            {% for customer in customers %}
+            {'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}'},
+            {% endfor %}
+        ]
+
+        function searchClients() {
+            const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
+            const dropdown = document.getElementById('clientDropdown');
+            
+            if (searchTerm.length === 0) {
+                dropdown.innerHTML = '';
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            const filteredClients = clients.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                client.phone.includes(searchTerm)
+            );
+            
+            dropdown.innerHTML = '';
+            
+            if (filteredClients.length === 0) {
+                dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
+            } else {
+                filteredClients.forEach(client => {
+                    const option = document.createElement('div');
+                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                    option.onclick = () => selectClient(client);
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectClient(client) {
+            document.getElementById('clientSearch').value = client.name;
+            document.getElementById('selectedClientId').value = client.id;
+            document.getElementById('clientDropdown').classList.add('hidden');
+        }
+
+        function showClientDropdown() {
+            if (document.getElementById('clientSearch').value.length > 0) {
+                searchClients();
+            }
+        }
+
+        function hideClientDropdown() {
+            setTimeout(() => {
+                document.getElementById('clientDropdown').classList.add('hidden');
+            }, 200);
+        }
+
+        function generatePDF() {
+            const element = document.getElementById("invoice");
+            const opt = {
+                margin: 0,
+                filename: 'document.pdf',
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    logging: true,
+                    scrollY: 0,
+                    windowWidth: document.body.scrollWidth,
+                    windowHeight: document.body.scrollHeight,
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'landscape'
+                }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function searchFilterClients() {
+            const searchTerm = document.getElementById('filterClientNameSearch').value.toLowerCase();
+            const dropdown = document.getElementById('filterClientDropdown');
+            
+            if (searchTerm.length === 0) {
+                dropdown.innerHTML = '';
+                dropdown.classList.add('hidden');
+                document.getElementById('selectedFilterClientId').value = '';
+                return;
+            }
+            
+            const filteredClients = clients.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                client.phone.includes(searchTerm)
+            );
+            
+            dropdown.innerHTML = '';
+            
+            const allOption = document.createElement('div');
+            allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
+            allOption.innerHTML = '<div>Barcha mijozlar</div>';
+            allOption.onclick = () => selectFilterClient(null);
+            dropdown.appendChild(allOption);
+            
+            if (filteredClients.length === 0) {
+                dropdown.innerHTML += '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
+            } else {
+                filteredClients.forEach(client => {
+                    const option = document.createElement('div');
+                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                    option.onclick = () => selectFilterClient(client);
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectFilterClient(client) {
+            if (client === null) {
+                document.getElementById('filterClientNameSearch').value = '';
+                document.getElementById('selectedFilterClientId').value = '';
+                setFilter();
+            } else {
+                document.getElementById('filterClientNameSearch').value = client.name;
+                document.getElementById('selectedFilterClientId').value = client.id;
+                setFilter();
+            }
+            document.getElementById('filterClientDropdown').classList.add('hidden');
+        }
+
+        function showFilterClientDropdown() {
+            const searchTerm = document.getElementById('filterClientNameSearch').value;
+            if (searchTerm.length > 0) {
+                searchFilterClients();
+            } else {
+                const dropdown = document.getElementById('filterClientDropdown');
+                dropdown.innerHTML = '';
+                
+                const allOption = document.createElement('div');
+                allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
+                allOption.innerHTML = '<div>Barcha mijozlar</div>';
+                allOption.onclick = () => selectFilterClient(null);
+                dropdown.appendChild(allOption);
+                
+                clients.forEach(client => {
+                    const option = document.createElement('div');
+                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                    option.onclick = () => selectFilterClient(client);
+                    dropdown.appendChild(option);
+                });
+                
+                dropdown.classList.remove('hidden');
+            }
+        }
+
+        function hideFilterClientDropdown() {
+            setTimeout(() => {
+                document.getElementById('filterClientDropdown').classList.add('hidden');
+            }, 200);
+        }
+    </script>
+    
+{% endblock %}
