@@ -64,12 +64,84 @@
                                 </table>
                             </div>
                             <div class="mt-3 flex justify-end">
-                                <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-sm shadow-md">Barchasini Saqlash</button>
+                                <button type="button" onclick="showReceiptModal()" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-sm shadow-md">Chek Ko'rish →</button>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[95vh]">
+
+        <!-- Modal toolbar (outside receipt, not printed) -->
+        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 no-print">
+            <span class="text-sm font-semibold text-gray-600">Buyurtma cheki</span>
+            <div class="flex gap-2">
+                <button onclick="downloadReceiptPDF(this)" class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:from-emerald-700 hover:to-teal-700 transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    PDF
+                </button>
+                <button onclick="closeReceiptModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Scrollable receipt area -->
+        <div class="overflow-y-auto bg-gray-50 p-5">
+            <div id="receiptPaper" style="font-family:'Courier New',Courier,monospace; background:#fff; width:320px; margin:0 auto; padding:24px 20px; color:#111;">
+
+                <!-- Top dashes -->
+                <div style="border-top:2px dashed #aaa; margin-bottom:16px;"></div>
+
+                <!-- Title -->
+                <div style="text-align:center; margin-bottom:16px;">
+                    <div style="font-size:20px; font-weight:700; letter-spacing:1px;">CHEK</div>
+                    <div style="font-size:11px; color:#555; margin-top:4px;">SAVDO TIZIMI</div>
+                </div>
+
+                <div style="border-top:2px dashed #aaa; margin-bottom:12px;"></div>
+
+                <!-- Date / No -->
+                <div style="font-size:11px; color:#333; margin-bottom:4px;" id="receiptDateLine"></div>
+                <div style="font-size:11px; color:#333; margin-bottom:4px;" id="receiptTimeLine"></div>
+                <div style="font-size:11px; color:#333; margin-bottom:12px;">Chek №: <span id="receiptNo" style="font-weight:700;"></span></div>
+
+                <div style="border-top:2px dashed #aaa; margin-bottom:12px;"></div>
+
+                <!-- Items -->
+                <div id="receiptItemsList"></div>
+
+                <div style="border-top:2px dashed #aaa; margin-bottom:12px;"></div>
+
+                <!-- Total -->
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:4px;">
+                    <span>JAMI TO'LOV</span>
+                    <span id="receiptGrandTotal"></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:#555;">
+                    <span>Buyurtmalar soni</span>
+                    <span id="receiptItemCount"></span>
+                </div>
+
+                <div style="border-top:2px dashed #aaa; margin-top:12px; margin-bottom:16px;"></div>
+
+                <!-- Footer -->
+                <div style="text-align:center; font-size:13px; font-weight:700; margin-bottom:16px;">RAHMAT!</div>
+
+                <div style="border-top:2px dashed #aaa;"></div>
+            </div>
+        </div>
+
+        <!-- Action buttons (outside receipt, not printed) -->
+        <div class="px-5 pb-4 pt-3 border-t border-gray-100 flex gap-3 no-print">
+            <button onclick="submitOrders()" class="flex-1 gradient-bg text-white py-2.5 rounded-lg font-semibold text-sm shadow-md transition-all hover:shadow-lg">Saqlash ✓</button>
+            <button onclick="closeReceiptModal()" class="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all">Bekor</button>
+        </div>
+    </div>
+</div>
 
             <!-- Orders List -->
             <div id="invoice" class="modern-card rounded-2xl p-6 card-hover">
@@ -273,6 +345,87 @@
                 quantity: o.quantity,
                 price_per_kg: o.price_per_kg
             })));
+        }
+
+        function fmt(n) {
+            return Number(n).toLocaleString('uz-UZ');
+        }
+
+        function showReceiptModal() {
+            if (pendingOrders.length === 0) return;
+
+            const now = new Date();
+            const days = ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];
+            const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+            const dayName = days[now.getDay()];
+            const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} y. (${dayName})`;
+            const timeStr = `Vaqt: ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const receiptNo = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+
+            document.getElementById('receiptDateLine').textContent = 'Sana: ' + dateStr;
+            document.getElementById('receiptTimeLine').textContent = timeStr;
+            document.getElementById('receiptNo').textContent = receiptNo;
+            document.getElementById('receiptItemCount').textContent = pendingOrders.length + ' ta';
+
+            const list = document.getElementById('receiptItemsList');
+            list.innerHTML = '';
+            let grandTotal = 0;
+
+            pendingOrders.forEach((order, i) => {
+                grandTotal += order.total;
+                const item = document.createElement('div');
+                item.style.cssText = "margin-bottom:10px; font-family:'Courier New',monospace; font-size:12px; color:#111;";
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:8px;">
+                            <div style="font-weight:700;">${order.customer_name}</div>
+                            <div style="color:#444; margin-top:1px;">${order.product_name}</div>
+                            <div style="color:#888; margin-top:1px;">${fmt(order.quantity)} x ${fmt(order.price_per_kg)} so'm</div>
+                        </div>
+                        <div style="font-weight:700; white-space:nowrap;">${fmt(order.total)}</div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            document.getElementById('receiptGrandTotal').textContent = fmt(grandTotal) + ' so\'m';
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
+        }
+
+        function downloadReceiptPDF(btn) {
+            const el = document.getElementById('receiptPaper');
+            const orig = btn.innerHTML;
+            btn.textContent = 'Yuklanmoqda...';
+            btn.disabled = true;
+            html2canvas(el, {
+                scale: 3,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const widthMm = 80;
+                const heightMm = Math.round((canvas.height / canvas.width) * widthMm);
+                const pdf = new jsPDF({ unit: 'mm', format: [widthMm, heightMm], orientation: 'portrait' });
+                pdf.addImage(imgData, 'PNG', 0, 0, widthMm, heightMm);
+                pdf.save(`chek-${document.getElementById('receiptNo').textContent}.pdf`);
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }).catch(() => {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+                alert('PDF yaratishda xatolik. Qayta urining.');
+            });
+        }
+
+        function submitOrders() {
+            document.getElementById('receiptModal').classList.add('hidden');
+            document.getElementById('batchOrderForm').submit();
         }
 
         function setFilter(){
