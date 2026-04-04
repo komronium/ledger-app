@@ -4,7 +4,7 @@ from finance.views import (
     LoginView, LogoutView,
     OrderView, CustomerView, DebtView, ProductView, StatisticsView, ProductDeleteView,
     OrderEditView, OrderDeleteView, CustomerDeleteView, PaymentDeleteView, PaymentEditView,
-    SupplierView, SupplierDeleteView,
+    SupplierView, SupplierDeleteView, ProductEditView,
 )
 
 
@@ -22,6 +22,7 @@ urlpatterns = [
     path('debt/', DebtView.as_view(), name='debts'),
     path('product/', ProductView.as_view(), name='product'),
     path('product/delete/<int:pk>/', ProductDeleteView.as_view(), name='product_delete'),
+    path('product/edit/<int:pk>/', ProductEditView.as_view(), name='product_edit'),
     path('statistics/', StatisticsView.as_view(), name='stats'),
     path('payments/edit/<int:pk>/', PaymentEditView.as_view(), name='payment_edit'),
     path('payments/delete/<int:pk>/', PaymentDeleteView.as_view(), name='payment_delete'),
