@@ -12,12 +12,13 @@ from django.views import View
 from finance.filters import CustomerFilter, OrderFilter, PaymentFilter
 from finance.forms import (
     ProductForm,
+    SupplierForm,
     CustomerForm,
     OrderForm,
     PaymentEditForm,
     PaymentForm,
 )
-from finance.models import Product, Customer, Order, PaymentHistory
+from finance.models import Product, Customer, Order, PaymentHistory, Supplier
 
 
 class LoginView(LView):
@@ -199,10 +200,15 @@ class OrderView(LoginRequiredMixin, View):
             total_paid_amount = 0
             total_debt = totals["total_debt"]
 
+        products_list = list(Product.objects.values('id', 'name', 'price'))
+        import json as _json
+        products_json = _json.dumps(products_list)
+
         context = {
             "orders": order_data,
             "customers": Customer.objects.all(),
             "products": Product.objects.all(),
+            "products_json": products_json,
             "today": date.today().strftime("%Y-%m-%d"),
             "total_quantity": total_quantity,
             "total_price": total_price,
@@ -445,7 +451,7 @@ class ProductView(LoginRequiredMixin, View):
 
         context = {
             "products": products,
-            "colors": Product.COLOR_CHOICES,
+            "suppliers": Supplier.objects.all(),
             "total_quantity": sum(
                 product.total_quantity or 0 for product in products
             ),
@@ -528,16 +534,69 @@ class StatisticsView(LoginRequiredMixin, View):
         # Top customers by debt
         top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[:5]
 
+        # Supplier monthly stats
+        supplier_stats = []
+        for supplier in Supplier.objects.all():
+            supplier_orders = orders.filter(product__supplier=supplier)
+            s_revenue = sum(o.total_price for o in supplier_orders)
+            s_cost = sum(o.quantity * (o.product.price if o.product else 0) for o in supplier_orders)
+            s_profit = s_revenue - s_cost
+            s_quantity = sum(o.quantity for o in supplier_orders)
+            monthly = []
+            for month_num in range(1, 13):
+                mo = supplier_orders.filter(order_date__month=month_num)
+                m_rev = sum(o.total_price for o in mo)
+                m_cost = sum(o.quantity * (o.product.price if o.product else 0) for o in mo)
+                monthly.append({
+                    "month": self.MONTH_NAMES[month_num - 1],
+                    "quantity": sum(o.quantity for o in mo),
+                    "revenue": m_rev,
+                    "profit": m_rev - m_cost,
+                })
+            supplier_stats.append({
+                "supplier": supplier,
+                "revenue": s_revenue,
+                "profit": s_profit,
+                "quantity": s_quantity,
+                "monthly": monthly,
+            })
+
         context = {
             "total_orders": total_orders,
             "total_revenue": total_revenue,
             "total_debt": total_debt,
             "total_quantity": total_quantity,
-            "monthly_data": monthly_data,
-            "top_products": top_products,
-            "top_debtors": top_debtors,
+            "supplier_stats": supplier_stats,
             "selected_year": selected_year,
             "page": "stats",
         }
 
         return render(request, self.template_name, context=context)
+
+
+class SupplierView(LoginRequiredMixin, View):
+    template_name = "supplier.html"
+
+    def get(self, request):
+        suppliers = Supplier.objects.annotate(
+            product_count=models.Count('products')
+        )
+        return render(request, self.template_name, {"suppliers": suppliers, "page": "supplier"})
+
+    def post(self, request):
+        method = request.POST.get('_method')
+        if method == 'PUT':
+            supplier_id = request.POST.get('id')
+            supplier = get_object_or_404(Supplier, pk=supplier_id)
+            form = SupplierForm(request.POST, instance=supplier)
+        else:
+            form = SupplierForm(request.POST)
+        if form.is_valid():
+            form.save()
+        return redirect('supplier')
+
+
+class SupplierDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        Supplier.objects.filter(pk=pk).delete()
+        return redirect('supplier')

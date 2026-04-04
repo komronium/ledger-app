@@ -3,7 +3,8 @@ from django.urls import path
 from finance.views import (
     LoginView, LogoutView,
     OrderView, CustomerView, DebtView, ProductView, StatisticsView, ProductDeleteView,
-    OrderEditView, OrderDeleteView, CustomerDeleteView, PaymentDeleteView, PaymentEditView
+    OrderEditView, OrderDeleteView, CustomerDeleteView, PaymentDeleteView, PaymentEditView,
+    SupplierView, SupplierDeleteView,
 )
 
 
@@ -24,4 +25,6 @@ urlpatterns = [
     path('statistics/', StatisticsView.as_view(), name='stats'),
     path('payments/edit/<int:pk>/', PaymentEditView.as_view(), name='payment_edit'),
     path('payments/delete/<int:pk>/', PaymentDeleteView.as_view(), name='payment_delete'),
+    path('supplier/', SupplierView.as_view(), name='supplier'),
+    path('supplier/delete/<int:pk>/', SupplierDeleteView.as_view(), name='supplier_delete'),
 ]

@@ -1,81 +1,83 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 {% block content %}
-<!-- Products Tab -->
-        <div id="productContent" class="tab-content">
-            <div class="modern-card rounded-2xl p-6 mb-6 card-hover">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Yangi Mahsulot Qo'shish</h2>
-                <form action="{% url 'product' %}" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {% csrf_token %}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Mahsulot Nomi</label>
-                        <input required type="text" name="name" id="productName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-300 text-sm" placeholder="Masalan: M400, M500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Rang</label>
-                        <select required id="productColor" name="color" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-300 text-sm">
-                            <option value="">Rangni tanlang</option>
-                            {% for color in colors %}
-                                <option value="{{ color.0 }}" style="color: {{ color.0 }}">
-                                    {{ color.1 }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full gradient-bg text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 font-bold text-sm">Mahsulot Qo'shish</button>
-                    </div>
-                </form>
-            </div>
-            <div id="productList" class="glass-card rounded-3xl shadow-2xl p-10 card-hover">
-                <div class="flex justify-between items-center mb-1">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-8">Mahsulotlar Ro'yxati</h3>
-                    <button onclick="generatePDF()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 font-bold text-sm shadow-lg">Hisobotni Yuklash</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Oyni tanlang</label>
-                        <input onchange="setFilter()" value="{{ selected_month }}" type="month" name="month" id="filterMonth" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full table-auto">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Mahsulot</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Rang</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Jami sotilgan miqdori</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTable" class="divide-y divide-gray-200 font-medium">
-                            {% for product in products %}
-                                <tr>
-                        <td class="px-4 py-3 text-sm text-gray-900">{{ product.name }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <div class="flex items-center space-x-2">
-                                <div class="w-6 h-6 rounded-full border-2 border-gray-300" style="background-color: {{ product.color }}"></div>
-                                <span class="text-gray-700">{{ product.get_color_display }}</span>
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm"> {{ product.total_quantity | default:0 | format_currency }}</td>
-                    </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="3" class="px-4 py-3 text-sm text-gray-500 text-center">Hozircha mahsulotlar mavjud emas</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot class="bg-gradient-to-r from-green-50 to-emerald-100">
-                            <tr>
-                                <td class="px-4 py-4 text-sm font-bold text-gray-900">Jami:</td>
-                                <td></td>
-                                <td class="px-4 py-4 text-sm font-semibold text-green-700">{{ total_quantity | format_currency }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
+<div class="modern-card rounded-2xl p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-800 mb-5">Yangi Mahsulot Qo'shish</h2>
+    <form action="{% url 'product' %}" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        {% csrf_token %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Mahsulot nomi</label>
+            <input required type="text" name="name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all" placeholder="M400, M500...">
         </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Narxi (so'm)</label>
+            <input required type="number" name="price" min="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all" placeholder="0">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Firma</label>
+            <select name="supplier" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all">
+                <option value="">— Tanlang —</option>
+                {% for s in suppliers %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all">+ Mahsulot Qo'shish</button>
+        </div>
+    </form>
+</div>
+
+<div id="productList" class="modern-card rounded-2xl p-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+        <h3 class="text-xl font-bold text-gray-800">Mahsulotlar Ro'yxati</h3>
+        <div class="flex gap-2 items-center">
+            <input onchange="setFilter()" value="{{ selected_month }}" type="month" id="filterMonth" class="p-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 transition-all">
+            <button onclick="generatePDF()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:shadow-lg transition-all">PDF</button>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Mahsulot</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Narxi</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Firma</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Sotilgan (oy)</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody id="productTable" class="divide-y divide-gray-100">
+                {% for product in products %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ product.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ product.price|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ product.supplier.name|default:"—" }}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-gray-700">{{ product.total_quantity|default:0|format_currency }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <form action="{% url 'product_delete' product.id %}" method="POST" onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
+                            {% csrf_token %}
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium transition-all">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                O'chirish
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="px-4 py-8 text-sm text-gray-400 text-center">Hozircha mahsulotlar yo'q</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-green-50">
+                <tr>
+                    <td colspan="3" class="px-4 py-4 text-sm font-bold text-gray-800">Jami:</td>
+                    <td class="px-4 py-4 text-sm font-semibold text-green-700">{{ total_quantity|format_currency }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
 
         <script>
         function setFilter() {

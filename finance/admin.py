@@ -1,5 +1,5 @@
 from django.contrib import admin
-from finance.models import Customer, Product, Order, PaymentHistory
+from finance.models import Customer, Product, Order, PaymentHistory, Supplier
 
 
 @admin.register(Customer)
@@ -9,9 +9,15 @@ class CustomerAdmin(admin.ModelAdmin):
     ordering = ('-total_debt',)
 
 
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone', 'address')
+    search_fields = ('name',)
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color')
+    list_display = ('name', 'price', 'supplier')
     search_fields = ('name',)
     ordering = ('name',)
 

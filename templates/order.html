@@ -20,10 +20,10 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500 mb-1">Mahsulot</label>
-                            <select id="productSelect" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                            <select id="productSelect" class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm" onchange="autoFillPrice(this)">
                                 <option value="">Tanlang</option>
                                 {% for product in products %}
-                                    <option value="{{ product.id }}" data-name="{{ product.name }}">{{ product.name }}</option>
+                                    <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}">{{ product.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -264,6 +264,15 @@
 
     <script>
         let pendingOrders = [];
+
+        function autoFillPrice(select) {
+            const selected = select.options[select.selectedIndex];
+            const price = selected ? selected.dataset.price : '';
+            if (price) {
+                document.getElementById('price').value = price;
+                calculateTotal();
+            }
+        }
 
         function calculateTotal() {
             const quantity = parseFloat(document.getElementById('quantity').value) || 0;

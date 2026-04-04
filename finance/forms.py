@@ -1,5 +1,5 @@
 from django import forms
-from finance.models import Customer, Product, Order, PaymentHistory
+from finance.models import Customer, Product, Order, PaymentHistory, Supplier
 
 
 class OrderForm(forms.ModelForm):    
@@ -149,13 +149,20 @@ class PaymentEditForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    
+
     class Meta:
         model = Product
-        fields = ['name', 'color']
+        fields = ['name', 'price', 'supplier']
 
     def save(self, commit=True):
         product = super().save(commit=False)
         if commit:
             product.save()
         return product
+
+
+class SupplierForm(forms.ModelForm):
+
+    class Meta:
+        model = Supplier
+        fields = ['name', 'phone', 'address']
