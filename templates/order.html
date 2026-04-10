@@ -79,6 +79,10 @@
         <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 no-print">
             <span class="text-sm font-semibold text-gray-600">Buyurtma cheki</span>
             <div class="flex gap-2">
+                <button onclick="window.print()" class="flex items-center gap-1.5 bg-gradient-to-r from-slate-700 to-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:from-slate-800 hover:to-black transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Print
+                </button>
                 <button onclick="downloadReceiptPDF(this)" class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:from-emerald-700 hover:to-teal-700 transition-all">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     PDF
@@ -91,47 +95,47 @@
 
         <!-- Scrollable receipt area -->
         <div class="overflow-y-auto bg-gray-50 p-5">
-            <div id="receiptPaper" style="font-family:'Courier New',Courier,monospace; background:#fff; width:320px; margin:0 auto; padding:24px 20px; color:#111;">
+            <div id="receiptPaper" style="font-family:'Roboto Mono','Courier New',monospace; background:#fff; width:320px; margin:0 auto; padding:24px 20px; color:#000;">
 
                 <!-- Top dashes -->
-                <div style="border-top:2px dashed #aaa; margin-bottom:16px;"></div>
+                <div style="border-top:2px dashed #000; margin-bottom:16px;"></div>
 
                 <!-- Title -->
                 <div style="text-align:center; margin-bottom:16px;">
-                    <div style="font-size:20px; font-weight:700; letter-spacing:1px;">CHEK</div>
-                    <div style="font-size:11px; color:#555; margin-top:4px;">SAVDO TIZIMI</div>
+                    <div style="font-size:18px; font-weight:700; letter-spacing:2px; color:#000;">CHEK</div>
+                    <div style="font-size:10px; font-weight:400; color:#000; margin-top:4px; letter-spacing:1px;">SAVDO TIZIMI</div>
                 </div>
 
-                <div style="border-top:2px dashed #aaa; margin-bottom:12px;"></div>
+                <div style="border-top:2px dashed #000; margin-bottom:12px;"></div>
 
                 <!-- Date / No -->
-                <div style="font-size:11px; color:#333; margin-bottom:4px;" id="receiptDateLine"></div>
-                <div style="font-size:11px; color:#333; margin-bottom:4px;" id="receiptTimeLine"></div>
-                <div style="font-size:11px; color:#333; margin-bottom:12px;">Chek №: <span id="receiptNo" style="font-weight:700;"></span></div>
+                <div style="font-size:11px; font-weight:400; color:#000; margin-bottom:3px;" id="receiptDateLine"></div>
+                <div style="font-size:11px; font-weight:400; color:#000; margin-bottom:3px;" id="receiptTimeLine"></div>
+                <div style="font-size:11px; font-weight:400; color:#000; margin-bottom:12px;">Chek №: <span id="receiptNo" style="font-weight:600;"></span></div>
 
-                <div style="border-top:2px dashed #aaa; margin-bottom:12px;"></div>
+                <div style="border-top:2px dashed #000; margin-bottom:12px;"></div>
 
                 <!-- Items -->
                 <div id="receiptItemsList"></div>
 
-                <div style="border-top:2px dashed #aaa; margin-bottom:12px;"></div>
+                <div style="border-top:2px dashed #000; margin-bottom:12px;"></div>
 
                 <!-- Total -->
-                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:4px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#000; margin-bottom:4px;">
                     <span>JAMI TO'LOV</span>
                     <span id="receiptGrandTotal"></span>
                 </div>
-                <div style="display:flex; justify-content:space-between; font-size:11px; color:#555;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:400; color:#000;">
                     <span>Buyurtmalar soni</span>
                     <span id="receiptItemCount"></span>
                 </div>
 
-                <div style="border-top:2px dashed #aaa; margin-top:12px; margin-bottom:16px;"></div>
+                <div style="border-top:2px dashed #000; margin-top:12px; margin-bottom:16px;"></div>
 
                 <!-- Footer -->
-                <div style="text-align:center; font-size:13px; font-weight:700; margin-bottom:16px;">RAHMAT!</div>
+                <div style="text-align:center; font-size:12px; font-weight:500; color:#000; margin-bottom:16px; letter-spacing:2px;">RAHMAT!</div>
 
-                <div style="border-top:2px dashed #aaa;"></div>
+                <div style="border-top:2px dashed #000;"></div>
             </div>
         </div>
 
@@ -383,13 +387,13 @@
             pendingOrders.forEach((order, i) => {
                 grandTotal += order.total;
                 const item = document.createElement('div');
-                item.style.cssText = "margin-bottom:10px; font-family:'Courier New',monospace; font-size:12px; color:#111;";
+                item.style.cssText = "margin-bottom:10px; font-family:'Roboto Mono','Courier New',monospace; font-size:12px; color:#000;";
                 item.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div style="flex:1; padding-right:8px;">
-                            <div style="font-weight:700;">${order.customer_name}</div>
-                            <div style="color:#444; margin-top:1px;">${order.product_name}</div>
-                            <div style="color:#888; margin-top:1px;">${fmt(order.quantity)} x ${fmt(order.price_per_kg)} so'm</div>
+                            <div style="font-weight:600;">${order.customer_name}</div>
+                            <div style="font-weight:400; margin-top:2px;">${order.product_name}</div>
+                            <div style="font-weight:400; margin-top:2px; font-size:11px;">${fmt(order.quantity)} x ${fmt(order.price_per_kg)} so'm</div>
                         </div>
                         <div style="font-weight:700; white-space:nowrap;">${fmt(order.total)}</div>
                     </div>

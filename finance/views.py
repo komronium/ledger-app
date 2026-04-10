@@ -13,12 +13,13 @@ from finance.filters import CustomerFilter, OrderFilter, PaymentFilter
 from finance.forms import (
     ProductForm,
     SupplierForm,
+    ExpenseForm,
     CustomerForm,
     OrderForm,
     PaymentEditForm,
     PaymentForm,
 )
-from finance.models import Product, Customer, Order, PaymentHistory, Supplier
+from finance.models import Product, Customer, Order, PaymentHistory, Supplier, Expense
 
 
 class LoginView(LView):
@@ -570,12 +571,18 @@ class StatisticsView(LoginRequiredMixin, View):
                 "monthly": monthly,
             })
 
+        total_expenses = sum(
+            e.amount for e in Expense.objects.filter(date__year=selected_year)
+        )
+
         context = {
             "total_orders": total_orders,
             "total_revenue": total_revenue,
             "total_debt": total_debt,
             "total_quantity": total_quantity,
             "supplier_stats": supplier_stats,
+            "total_expenses": total_expenses,
+            "net_profit": total_revenue - total_expenses,
             "selected_year": selected_year,
             "page": "stats",
         }
@@ -609,3 +616,28 @@ class SupplierDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         Supplier.objects.filter(pk=pk).delete()
         return redirect('supplier')
+
+
+class ExpenseView(LoginRequiredMixin, View):
+    template_name = 'expense.html'
+
+    def get(self, request):
+        expenses = Expense.objects.all()
+        total = sum(e.amount for e in expenses)
+        return render(request, self.template_name, {
+            'expenses': expenses,
+            'total': total,
+            'page': 'expense',
+        })
+
+    def post(self, request):
+        form = ExpenseForm(request.POST)
+        if form.is_valid():
+            form.save()
+        return redirect('expense')
+
+
+class ExpenseDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        Expense.objects.filter(pk=pk).delete()
+        return redirect('expense')

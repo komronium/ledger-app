@@ -49,8 +49,12 @@
                                 <input type="text" id="grandTotal" class="py-3 w-full p-4 border border-blue-300 rounded-xl bg-blue-50 text-blue-800 font-bold shadow-sm text" readonly>
                             </div>
                             <div class="pt-4">
-                                <button type="submit" class="w-full mb-4 bg-gradient-to-r from-teal-600 to-green-600 text-white py-3 px-8 rounded-xl hover:from-teal-700 hover:to-green-700 transition-all duration-300 font-semibold text shadow-lg hover:shadow-xl">Saqlash</button>
-                                <button type="button" onclick="window.location.href = `{% url 'dashboard' %}`" class="w-full mb-4 bg-gray-500 text-white py-3 px-8 rounded-xl hover:bg-gray-600 transition-all duration-300 font-semibold text shadow-lg hover:shadow-xl">Bekor qilish</button>
+                                <button type="submit" class="w-full mb-3 bg-gradient-to-r from-teal-600 to-green-600 text-white py-3 px-8 rounded-xl hover:from-teal-700 hover:to-green-700 transition-all duration-300 font-semibold text shadow-lg hover:shadow-xl">Saqlash</button>
+                                <button type="button" onclick="showEditReceipt()" class="w-full mb-3 flex items-center justify-center gap-2 bg-gradient-to-r from-slate-700 to-slate-900 text-white py-3 px-8 rounded-xl hover:from-slate-800 hover:to-black transition-all duration-300 font-semibold text shadow-lg">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                    Chek Ko'rish
+                                </button>
+                                <button type="button" onclick="window.location.href = `{% url 'dashboard' %}`" class="w-full mb-3 bg-gray-500 text-white py-3 px-8 rounded-xl hover:bg-gray-600 transition-all duration-300 font-semibold text shadow-lg hover:shadow-xl">Bekor qilish</button>
                                 <div onclick="window.location.href = `{% url 'order_delete' order.id %}`" class="cursor-pointer text-center w-full bg-red-600 text-white py-3 px-8 rounded-xl hover:bg-red-700 transition-all duration-300 font-semibold text shadow-lg hover:shadow-xl">O'chirish</div>
                             </div>
                         </div>
@@ -59,8 +63,73 @@
             </div>
         </div>
 
+<!-- Receipt Modal -->
+<div id="editReceiptModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[95vh]">
+        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+            <span class="text-sm font-semibold text-gray-600">Buyurtma cheki</span>
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="flex items-center gap-1.5 bg-gradient-to-r from-slate-700 to-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Print
+                </button>
+                <button onclick="document.getElementById('editReceiptModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="overflow-y-auto bg-gray-50 p-5">
+            <div id="receiptPaper" style="font-family:'Roboto Mono','Courier New',monospace; background:#fff; width:300px; margin:0 auto; padding:20px 16px; color:#000;">
+                <div style="border-top:2px dashed #000; margin-bottom:14px;"></div>
+                <div style="text-align:center; margin-bottom:14px;">
+                    <div style="font-size:18px; font-weight:700; letter-spacing:2px; color:#000;">CHEK</div>
+                    <div style="font-size:10px; font-weight:400; color:#000; margin-top:4px; letter-spacing:1px;">SAVDO TIZIMI</div>
+                </div>
+                <div style="border-top:2px dashed #000; margin-bottom:10px;"></div>
+                <div style="font-size:11px; font-weight:400; color:#000; margin-bottom:4px;" id="erDateLine"></div>
+                <div style="font-size:11px; font-weight:400; color:#000; margin-bottom:10px;">Chek №: <span id="erReceiptNo" style="font-weight:600;"></span></div>
+                <div style="border-top:2px dashed #000; margin-bottom:10px;"></div>
+                <div id="erItemRow" style="margin-bottom:10px; font-size:12px;"></div>
+                <div style="border-top:2px dashed #000; margin-bottom:10px;"></div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#000; margin-bottom:4px;">
+                    <span>JAMI TO'LOV</span>
+                    <span id="erGrandTotal"></span>
+                </div>
+                <div style="border-top:2px dashed #000; margin-top:10px; margin-bottom:14px;"></div>
+                <div style="text-align:center; font-size:12px; font-weight:500; color:#000; margin-bottom:14px; letter-spacing:2px;">RAHMAT!</div>
+                <div style="border-top:2px dashed #000;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
     <script>
         calculateTotal();
+
+        function showEditReceipt() {
+            const customer = document.getElementById('clientSearch').value;
+            const productSel = document.getElementById('productSelect');
+            const productName = productSel.options[productSel.selectedIndex]?.text || '';
+            const qty = parseFloat(document.getElementById('quantity').value) || 0;
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const total = qty * price;
+            function fmt(n) { return Number(n).toLocaleString('uz-UZ'); }
+            const now = new Date();
+            const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+            document.getElementById('erDateLine').textContent = `Sana: ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+            document.getElementById('erReceiptNo').textContent = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+            document.getElementById('erItemRow').innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;font-family:'Roboto Mono','Courier New',monospace;font-size:12px;">
+                    <div style="flex:1;padding-right:8px;">
+                        <div style="font-weight:600;">${customer}</div>
+                        <div style="font-weight:400;margin-top:2px;">${productName}</div>
+                        <div style="font-weight:400;margin-top:2px;font-size:11px;">${fmt(qty)} x ${fmt(price)} so'm</div>
+                    </div>
+                    <div style="font-weight:700;white-space:nowrap;">${fmt(total)} so'm</div>
+                </div>`;
+            document.getElementById('erGrandTotal').textContent = fmt(total) + ' so\'m';
+            document.getElementById('editReceiptModal').classList.remove('hidden');
+        }
 
         function calculateTotal() {
             const quantity = parseFloat(document.getElementById('quantity').value) || 0;

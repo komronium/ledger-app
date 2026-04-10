@@ -1,5 +1,5 @@
 from django import forms
-from finance.models import Customer, Product, Order, PaymentHistory, Supplier
+from finance.models import Customer, Product, Order, PaymentHistory, Supplier, Expense
 
 
 class OrderForm(forms.ModelForm):    
@@ -166,3 +166,10 @@ class SupplierForm(forms.ModelForm):
     class Meta:
         model = Supplier
         fields = ['name', 'phone', 'address']
+
+
+class ExpenseForm(forms.ModelForm):
+
+    class Meta:
+        model = Expense
+        fields = ['title', 'amount', 'note']

@@ -100,3 +100,19 @@ class PaymentHistory(models.Model):
     def __str__(self):
         return f"{self.customer.name} - {self.amount} so'm - {self.paid_at.strftime('%Y-%m-%d %H:%M')}"
 
+
+class Expense(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Sarlavha")
+    amount = models.IntegerField(verbose_name="Summa")
+    date = models.DateField(auto_now_add=True)
+    note = models.TextField(blank=True, null=True, verbose_name="Izoh")
+
+    class Meta:
+        db_table = 'expenses'
+        verbose_name = 'Expense'
+        verbose_name_plural = 'Expenses'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.title} - {self.amount}"
+
