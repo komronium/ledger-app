@@ -14,12 +14,14 @@ from finance.forms import (
     ProductForm,
     SupplierForm,
     ExpenseForm,
+    PurchaseForm,
+    SupplierPaymentForm,
     CustomerForm,
     OrderForm,
     PaymentEditForm,
     PaymentForm,
 )
-from finance.models import Product, Customer, Order, PaymentHistory, Supplier, Expense
+from finance.models import Product, Customer, Order, PaymentHistory, Supplier, Expense, Purchase, SupplierPayment
 
 
 class LoginView(LView):
@@ -544,30 +546,54 @@ class StatisticsView(LoginRequiredMixin, View):
         # Top customers by debt
         top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[:5]
 
-        # Supplier monthly stats
+        # Per-supplier stats: purchases, payments, debt, sales, profit
         supplier_stats = []
+        total_supplier_debt = 0
+        total_purchased_all = 0
+
         for supplier in Supplier.objects.all():
+            purchases = Purchase.objects.filter(supplier=supplier, purchase_date__year=selected_year)
+            payments = SupplierPayment.objects.filter(supplier=supplier, paid_at__year=selected_year)
+
+            purchased = sum(p.total_cost for p in purchases)
+            paid = sum(p.amount for p in payments)
+            # All-time debt (not year-filtered)
+            all_purchases = sum(p.total_cost for p in supplier.purchases.all())
+            all_payments = sum(p.amount for p in supplier.payments.all())
+            debt = all_purchases - all_payments
+
             supplier_orders = orders.filter(product__supplier=supplier)
-            s_revenue = sum(o.total_price for o in supplier_orders)
-            s_cost = sum(o.quantity * (o.product.price if o.product else 0) for o in supplier_orders)
-            s_profit = s_revenue - s_cost
-            s_quantity = sum(o.quantity for o in supplier_orders)
+            sales_revenue = sum(o.total_price for o in supplier_orders)
+            sales_quantity = sum(o.quantity for o in supplier_orders)
+            profit = sales_revenue - purchased
+
+            total_supplier_debt += max(debt, 0)
+            total_purchased_all += purchased
+
             monthly = []
             for month_num in range(1, 13):
-                mo = supplier_orders.filter(order_date__month=month_num)
-                m_rev = sum(o.total_price for o in mo)
-                m_cost = sum(o.quantity * (o.product.price if o.product else 0) for o in mo)
+                mo_orders = supplier_orders.filter(order_date__month=month_num)
+                mo_purchases = purchases.filter(purchase_date__month=month_num)
+                mo_payments = payments.filter(paid_at__month=month_num)
+                m_sales = sum(o.total_price for o in mo_orders)
+                m_purchased = sum(p.total_cost for p in mo_purchases)
+                m_paid = sum(p.amount for p in mo_payments)
                 monthly.append({
                     "month": self.MONTH_NAMES[month_num - 1],
-                    "quantity": sum(o.quantity for o in mo),
-                    "revenue": m_rev,
-                    "profit": m_rev - m_cost,
+                    "sales": m_sales,
+                    "purchased": m_purchased,
+                    "paid": m_paid,
+                    "profit": m_sales - m_purchased,
                 })
+
             supplier_stats.append({
                 "supplier": supplier,
-                "revenue": s_revenue,
-                "profit": s_profit,
-                "quantity": s_quantity,
+                "purchased": purchased,
+                "paid": paid,
+                "debt": debt,
+                "sales": sales_revenue,
+                "quantity": sales_quantity,
+                "profit": profit,
                 "monthly": monthly,
             })
 
@@ -580,9 +606,11 @@ class StatisticsView(LoginRequiredMixin, View):
             "total_revenue": total_revenue,
             "total_debt": total_debt,
             "total_quantity": total_quantity,
+            "total_purchased": total_purchased_all,
+            "total_supplier_debt": total_supplier_debt,
             "supplier_stats": supplier_stats,
             "total_expenses": total_expenses,
-            "net_profit": total_revenue - total_expenses,
+            "net_profit": total_revenue - total_purchased_all - total_expenses,
             "selected_year": selected_year,
             "page": "stats",
         }
@@ -597,7 +625,16 @@ class SupplierView(LoginRequiredMixin, View):
         suppliers = Supplier.objects.annotate(
             product_count=models.Count('products')
         )
-        return render(request, self.template_name, {"suppliers": suppliers, "page": "supplier"})
+        supplier_debts = {}
+        for s in suppliers:
+            purchased = sum(p.total_cost for p in s.purchases.all())
+            paid = sum(p.amount for p in s.payments.all())
+            supplier_debts[s.pk] = purchased - paid
+        return render(request, self.template_name, {
+            "suppliers": suppliers,
+            "supplier_debts": supplier_debts,
+            "page": "supplier",
+        })
 
     def post(self, request):
         method = request.POST.get('_method')
@@ -616,6 +653,72 @@ class SupplierDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         Supplier.objects.filter(pk=pk).delete()
         return redirect('supplier')
+
+
+class SupplierDetailView(LoginRequiredMixin, View):
+    template_name = 'supplier_detail.html'
+
+    def get(self, request, pk):
+        supplier = get_object_or_404(Supplier, pk=pk)
+        purchases = Purchase.objects.filter(supplier=supplier)
+        payments = SupplierPayment.objects.filter(supplier=supplier)
+
+        total_purchased = sum(p.total_cost for p in purchases)
+        total_paid = sum(p.amount for p in payments)
+        debt = total_purchased - total_paid
+
+        orders = Order.objects.filter(product__supplier=supplier)
+        revenue = sum(o.total_price for o in orders)
+        cost = sum(o.quantity * (o.product.price if o.product else 0) for o in orders)
+        profit = revenue - cost
+
+        products = Product.objects.filter(supplier=supplier)
+
+        return render(request, self.template_name, {
+            'supplier': supplier,
+            'purchases': purchases,
+            'payments': payments,
+            'total_purchased': total_purchased,
+            'total_paid': total_paid,
+            'debt': debt,
+            'revenue': revenue,
+            'profit': profit,
+            'products': products,
+            'page': 'supplier',
+        })
+
+    def post(self, request, pk):
+        supplier = get_object_or_404(Supplier, pk=pk)
+        action = request.POST.get('action')
+        if action == 'purchase':
+            form = PurchaseForm(request.POST)
+            if form.is_valid():
+                purchase = form.save(commit=False)
+                purchase.supplier = supplier
+                purchase.save()
+        elif action == 'payment':
+            form = SupplierPaymentForm(request.POST)
+            if form.is_valid():
+                payment = form.save(commit=False)
+                payment.supplier = supplier
+                payment.save()
+        return redirect('supplier_detail', pk=pk)
+
+
+class PurchaseDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        purchase = get_object_or_404(Purchase, pk=pk)
+        supplier_pk = purchase.supplier.pk
+        purchase.delete()
+        return redirect('supplier_detail', pk=supplier_pk)
+
+
+class SupplierPaymentDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        payment = get_object_or_404(SupplierPayment, pk=pk)
+        supplier_pk = payment.supplier.pk
+        payment.delete()
+        return redirect('supplier_detail', pk=supplier_pk)
 
 
 class ExpenseView(LoginRequiredMixin, View):

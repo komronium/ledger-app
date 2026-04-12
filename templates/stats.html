@@ -3,150 +3,189 @@
 {% block content %}
 
 <!-- Year Filter -->
-<div class="mb-8 flex items-center justify-between">
+<div class="mb-6 flex items-center justify-between">
     <h2 class="text-2xl font-bold text-gray-800">{{ selected_year }}-yil Statistikasi</h2>
     <div class="flex gap-2">
-        <a href="{% url 'stats' %}?year=2024" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2024 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2024</a>
-        <a href="{% url 'stats' %}?year=2025" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2025 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2025</a>
-        <a href="{% url 'stats' %}?year=2026" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2026 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2026</a>
+        <a href="{% url 'stats' %}?year=2024" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {% if selected_year == 2024 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2024</a>
+        <a href="{% url 'stats' %}?year=2025" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {% if selected_year == 2025 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2025</a>
+        <a href="{% url 'stats' %}?year=2026" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {% if selected_year == 2026 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2026</a>
     </div>
 </div>
 
-<!-- Summary Cards -->
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-xl card-hover">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-semibold opacity-90">Daromad</h3>
-            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-            </div>
-        </div>
-        <p class="text-3xl font-black">{{ total_revenue|format_currency }}</p>
-        <p class="text-xs mt-1 opacity-75">jami savdo summasi</p>
+<!-- ========== UMUMIY KO'RINISH ========== -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="text-xs text-gray-400 font-medium mb-1">Sotuv (daromad)</div>
+        <div class="text-lg font-black text-gray-800">{{ total_revenue|format_currency }}</div>
     </div>
-    <div class="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-6 text-white shadow-xl card-hover">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-semibold opacity-90">Qarzlar</h3>
-            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-            </div>
-        </div>
-        <p class="text-3xl font-black">{{ total_debt|format_currency }}</p>
-        <p class="text-xs mt-1 opacity-75">jami qarzdorlik</p>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="text-xs text-gray-400 font-medium mb-1">Xarid (firmalardan)</div>
+        <div class="text-lg font-black text-gray-800">{{ total_purchased|format_currency }}</div>
     </div>
-    <div class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-6 text-white shadow-xl card-hover">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-semibold opacity-90">Sotilgan</h3>
-            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
-            </div>
-        </div>
-        <p class="text-3xl font-black">{{ total_quantity|format_currency }}</p>
-        <p class="text-xs mt-1 opacity-75">jami sotilgan miqdor</p>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="text-xs text-gray-400 font-medium mb-1">Xarajatlar</div>
+        <div class="text-lg font-black text-red-600">{{ total_expenses|format_currency }}</div>
     </div>
-    <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-6 text-white shadow-xl card-hover">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-semibold opacity-90">Xarajatlar</h3>
-            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="text-xs text-gray-400 font-medium mb-1">Mijoz qarzlari (bizga)</div>
+        <div class="text-lg font-black text-amber-600">{{ total_debt|format_currency }}</div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="text-xs text-gray-400 font-medium mb-1">Firma qarzlari (bizda)</div>
+        <div class="text-lg font-black text-red-500">{{ total_supplier_debt|format_currency }}</div>
+    </div>
+    <div class="rounded-xl border p-4 {% if net_profit >= 0 %}bg-emerald-50 border-emerald-200{% else %}bg-red-50 border-red-200{% endif %}">
+        <div class="text-xs font-medium mb-1 {% if net_profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">Sof foyda</div>
+        <div class="text-lg font-black {% if net_profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">
+            {% if net_profit >= 0 %}+{% endif %}{{ net_profit|format_currency }}
         </div>
-        <p class="text-3xl font-black">{{ total_expenses|format_currency }}</p>
-        <p class="text-xs mt-1 opacity-75">jami xarajatlar</p>
     </div>
 </div>
 
-<!-- Net profit banner -->
-<div class="mb-6 rounded-xl border {% if net_profit >= 0 %}border-emerald-200 bg-emerald-50{% else %}border-red-200 bg-red-50{% endif %} px-5 py-3 flex items-center justify-between">
-    <span class="text-sm font-semibold {% if net_profit >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">Sof daromad (Savdo − Xarajat)</span>
-    <span class="text-lg font-black {% if net_profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">
-        {% if net_profit >= 0 %}+{% endif %}{{ net_profit|format_currency }} so'm
-    </span>
+<!-- Tushuntirish -->
+<div class="mb-8 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
+    <strong>Sof foyda</strong> = Sotuv − Firmalardan xarid − Xarajatlar
 </div>
 
-<!-- Firmalar bo'yicha statistika -->
+<!-- ========== FIRMALAR BO'YICHA ========== -->
 {% if supplier_stats %}
-<div class="mt-8">
+<div>
     <div class="flex items-center justify-between mb-4">
-        <h3 class="text-base font-bold text-gray-700 tracking-wide uppercase">Firmalar bo'yicha</h3>
+        <h3 class="text-lg font-bold text-gray-800">Firmalar bo'yicha</h3>
         <span class="text-xs text-gray-400">{{ supplier_stats|length }} ta firma</span>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
-        {% for stat in supplier_stats %}
-        <div>
-            <!-- Clickable header row -->
-            <button type="button" onclick="toggleFirma('firma-{{ forloop.counter }}')"
-                    class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left group">
-                <div class="flex items-center gap-3 min-w-0">
-                    <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
-                        {{ stat.supplier.name|slice:":1"|upper }}
+
+    <div class="space-y-3">
+    {% for stat in supplier_stats %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <!-- Firma header — bosilganda ochiladi -->
+        <button type="button" onclick="toggleFirma('f{{ forloop.counter }}')"
+                class="w-full px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    {{ stat.supplier.name|slice:":1"|upper }}
+                </span>
+                <div class="min-w-0">
+                    <span class="text-sm font-bold text-gray-800">{{ stat.supplier.name }}</span>
+                </div>
+            </div>
+
+            <!-- Summary chips -->
+            <div class="flex items-center gap-3 shrink-0 ml-3">
+                <div class="hidden sm:flex items-center gap-3">
+                    <span class="px-2.5 py-1 rounded-lg bg-gray-50 text-xs">
+                        <span class="text-gray-400">Xarid:</span>
+                        <span class="font-bold text-gray-700">{{ stat.purchased|format_currency }}</span>
                     </span>
-                    <div class="min-w-0">
-                        <span class="text-sm font-semibold text-gray-800">{{ stat.supplier.name }}</span>
-                        {% if stat.supplier.phone %}<span class="text-xs text-gray-400 ml-2">{{ stat.supplier.phone }}</span>{% endif %}
-                    </div>
+                    <span class="px-2.5 py-1 rounded-lg bg-gray-50 text-xs">
+                        <span class="text-gray-400">Sotuv:</span>
+                        <span class="font-bold text-gray-700">{{ stat.sales|format_currency }}</span>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-xs {% if stat.debt > 0 %}bg-red-50 text-red-600{% else %}bg-emerald-50 text-emerald-600{% endif %}">
+                        <span class="opacity-70">Qarz:</span>
+                        <span class="font-bold">{{ stat.debt|format_currency }}</span>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-xs {% if stat.profit >= 0 %}bg-emerald-50 text-emerald-700{% else %}bg-red-50 text-red-600{% endif %}">
+                        <span class="opacity-70">Foyda:</span>
+                        <span class="font-bold">{% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}</span>
+                    </span>
                 </div>
-                <div class="flex items-center gap-4 shrink-0 ml-4">
-                    <div class="hidden sm:flex items-center gap-4 text-right">
-                        <div>
-                            <div class="text-xs text-gray-400 leading-none mb-0.5">Sotuv</div>
-                            <div class="text-sm font-semibold text-gray-700">{{ stat.revenue|format_currency }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-gray-400 leading-none mb-0.5">Foyda</div>
-                            <div class="text-sm font-bold {% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
-                                {% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-gray-400 leading-none mb-0.5">Miqdor</div>
-                            <div class="text-sm font-semibold text-gray-600">{{ stat.quantity|format_currency }}</div>
-                        </div>
-                    </div>
-                    <svg id="arrow-firma-{{ forloop.counter }}" class="w-4 h-4 text-gray-400 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
+                <svg id="arrow-f{{ forloop.counter }}" class="w-4 h-4 text-gray-400 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+        </button>
+
+        <!-- Expanded content -->
+        <div id="f{{ forloop.counter }}" class="hidden border-t border-gray-100">
+
+            <!-- Mobile summary -->
+            <div class="sm:hidden grid grid-cols-2 gap-2 p-3 bg-gray-50 border-b border-gray-100">
+                <div class="bg-white rounded-lg p-2 text-center">
+                    <div class="text-[10px] text-gray-400">Xarid</div>
+                    <div class="text-xs font-bold text-gray-700">{{ stat.purchased|format_currency }}</div>
                 </div>
-            </button>
-            <!-- Collapsible monthly table -->
-            <div id="firma-{{ forloop.counter }}" class="hidden border-t border-gray-100 bg-gray-50">
-                <!-- Mobile summary -->
-                <div class="sm:hidden flex justify-around py-2 px-4 border-b border-gray-100 bg-blue-50/50 text-center">
-                    <div><div class="text-xs text-gray-400">Sotuv</div><div class="text-xs font-bold text-gray-700">{{ stat.revenue|format_currency }}</div></div>
-                    <div><div class="text-xs text-gray-400">Foyda</div><div class="text-xs font-bold {% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">{{ stat.profit|format_currency }}</div></div>
-                    <div><div class="text-xs text-gray-400">Miqdor</div><div class="text-xs font-bold text-gray-600">{{ stat.quantity|format_currency }}</div></div>
+                <div class="bg-white rounded-lg p-2 text-center">
+                    <div class="text-[10px] text-gray-400">Sotuv</div>
+                    <div class="text-xs font-bold text-gray-700">{{ stat.sales|format_currency }}</div>
                 </div>
-                <table class="w-full text-sm">
+                <div class="bg-white rounded-lg p-2 text-center">
+                    <div class="text-[10px] text-gray-400">Qarz</div>
+                    <div class="text-xs font-bold {% if stat.debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ stat.debt|format_currency }}</div>
+                </div>
+                <div class="bg-white rounded-lg p-2 text-center">
+                    <div class="text-[10px] text-gray-400">Foyda</div>
+                    <div class="text-xs font-bold {% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">{{ stat.profit|format_currency }}</div>
+                </div>
+            </div>
+
+            <!-- Summary row -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-gray-50/50 border-b border-gray-100">
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Xarid qilindi</div>
+                    <div class="text-sm font-bold text-gray-800">{{ stat.purchased|format_currency }} so'm</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Firmaga to'landi</div>
+                    <div class="text-sm font-bold text-emerald-600">{{ stat.paid|format_currency }} so'm</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Qarz (jami)</div>
+                    <div class="text-sm font-bold {% if stat.debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ stat.debt|format_currency }} so'm</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Sotildi</div>
+                    <div class="text-sm font-bold text-blue-600">{{ stat.sales|format_currency }} so'm</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Foyda (Sotuv−Xarid)</div>
+                    <div class="text-sm font-bold {% if stat.profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }} so'm</div>
+                </div>
+            </div>
+
+            <!-- Monthly table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
                     <thead>
-                        <tr class="border-b border-gray-200">
-                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Oy</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Miqdor</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Sotuv</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Foyda</th>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="px-4 py-2 text-left font-semibold text-gray-500">Oy</th>
+                            <th class="px-4 py-2 text-right font-semibold text-gray-500">Xarid</th>
+                            <th class="px-4 py-2 text-right font-semibold text-gray-500">To'lov</th>
+                            <th class="px-4 py-2 text-right font-semibold text-gray-500">Sotuv</th>
+                            <th class="px-4 py-2 text-right font-semibold text-gray-500">Foyda</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        {% for m in stat.monthly %}{% if m.revenue > 0 %}
-                        <tr class="hover:bg-white transition-colors">
-                            <td class="px-4 py-2 font-medium text-gray-700 text-xs">{{ m.month }}</td>
-                            <td class="px-4 py-2 text-right text-xs text-gray-500">{{ m.quantity|format_currency }}</td>
-                            <td class="px-4 py-2 text-right text-xs font-semibold text-gray-700">{{ m.revenue|format_currency }}</td>
-                            <td class="px-4 py-2 text-right">
-                                <span class="text-xs font-bold {% if m.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
-                                    {% if m.profit >= 0 %}+{% endif %}{{ m.profit|format_currency }}
-                                </span>
+                        {% for m in stat.monthly %}
+                        {% if m.sales > 0 or m.purchased > 0 or m.paid > 0 %}
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-4 py-2 font-medium text-gray-700">{{ m.month }}</td>
+                            <td class="px-4 py-2 text-right text-gray-600">{{ m.purchased|format_currency }}</td>
+                            <td class="px-4 py-2 text-right text-emerald-600 font-medium">{{ m.paid|format_currency }}</td>
+                            <td class="px-4 py-2 text-right text-gray-700 font-semibold">{{ m.sales|format_currency }}</td>
+                            <td class="px-4 py-2 text-right font-bold {% if m.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
+                                {% if m.profit >= 0 %}+{% endif %}{{ m.profit|format_currency }}
                             </td>
                         </tr>
-                        {% endif %}{% endfor %}
+                        {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- Link to detail -->
+            <div class="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                <a href="{% url 'supplier_detail' stat.supplier.pk %}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                    To'liq tarix va boshqarish →
+                </a>
+            </div>
         </div>
-        {% endfor %}
+    </div>
+    {% endfor %}
     </div>
 </div>
 {% else %}
-<div class="mt-8 text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
+<div class="mt-6 text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
     <p class="text-gray-400 text-sm">Hali firmalar bo'yicha ma'lumot yo'q</p>
 </div>
 {% endif %}

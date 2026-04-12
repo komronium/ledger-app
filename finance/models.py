@@ -101,6 +101,52 @@ class PaymentHistory(models.Model):
         return f"{self.customer.name} - {self.amount} so'm - {self.paid_at.strftime('%Y-%m-%d %H:%M')}"
 
 
+class Purchase(models.Model):
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchases', verbose_name="Firma")
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases', verbose_name="Mahsulot")
+    quantity = models.IntegerField(verbose_name="Miqdori")
+    price_per_unit = models.IntegerField(verbose_name="Birlik narxi")
+    total_cost = models.IntegerField(verbose_name="Jami narx")
+    purchase_date = models.DateField(auto_now_add=True)
+    note = models.TextField(blank=True, null=True, verbose_name="Izoh")
+
+    class Meta:
+        db_table = 'purchases'
+        verbose_name = 'Purchase'
+        verbose_name_plural = 'Purchases'
+        ordering = ['-purchase_date']
+
+    def save(self, *args, **kwargs):
+        self.total_cost = self.quantity * self.price_per_unit
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.supplier.name} - {self.product} - {self.purchase_date}"
+
+
+class SupplierPayment(models.Model):
+
+    class PaymentTypeChoices(models.TextChoices):
+        BANK = 'bank', "Pul ko'chirish"
+        CASH = 'cash', 'Naqd'
+        CLICK = 'click', 'Click'
+
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments', verbose_name="Firma")
+    amount = models.IntegerField(verbose_name="Summa")
+    payment_type = models.CharField(max_length=20, choices=PaymentTypeChoices.choices, null=True, blank=True)
+    paid_at = models.DateField(auto_now_add=True)
+    comment = models.TextField(blank=True, null=True, verbose_name="Izoh")
+
+    class Meta:
+        db_table = 'supplier_payments'
+        verbose_name = 'Supplier Payment'
+        verbose_name_plural = 'Supplier Payments'
+        ordering = ['-paid_at']
+
+    def __str__(self):
+        return f"{self.supplier.name} - {self.amount} so'm - {self.paid_at}"
+
+
 class Expense(models.Model):
     title = models.CharField(max_length=200, verbose_name="Sarlavha")
     amount = models.IntegerField(verbose_name="Summa")

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from finance.models import Customer, Product, Order, PaymentHistory, Supplier, Expense
+from finance.models import Customer, Product, Order, PaymentHistory, Supplier, Expense, Purchase, SupplierPayment
 
 
 @admin.register(Customer)
@@ -29,6 +29,20 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ('order_date', 'product')
     ordering = ('-order_date',)
     readonly_fields = ('total_price', 'remaining_debt')
+
+
+@admin.register(Purchase)
+class PurchaseAdmin(admin.ModelAdmin):
+    list_display = ('supplier', 'product', 'quantity', 'price_per_unit', 'total_cost', 'purchase_date')
+    list_filter = ('supplier', 'purchase_date')
+    ordering = ('-purchase_date',)
+
+
+@admin.register(SupplierPayment)
+class SupplierPaymentAdmin(admin.ModelAdmin):
+    list_display = ('supplier', 'amount', 'payment_type', 'paid_at')
+    list_filter = ('supplier', 'paid_at')
+    ordering = ('-paid_at',)
 
 
 @admin.register(Expense)
