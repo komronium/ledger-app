@@ -7,6 +7,8 @@ from finance.views import (
     SupplierView, SupplierDeleteView, ProductEditView,
     ExpenseView, ExpenseDeleteView,
     SupplierDetailView, PurchaseDeleteView, SupplierPaymentDeleteView,
+    OperatorView, OperatorDeleteView,
+    ProfileView,
 )
 
 
@@ -35,4 +37,7 @@ urlpatterns = [
     path('supplier/payment/delete/<int:pk>/', SupplierPaymentDeleteView.as_view(), name='supplier_payment_delete'),
     path('expense/', ExpenseView.as_view(), name='expense'),
     path('expense/delete/<int:pk>/', ExpenseDeleteView.as_view(), name='expense_delete'),
+    path('operators/', OperatorView.as_view(), name='operator'),
+    path('operators/delete/<int:pk>/', OperatorDeleteView.as_view(), name='operator_delete'),
+    path('profile/', ProfileView.as_view(), name='profile'),
 ]

@@ -4,6 +4,18 @@ register = template.Library()
 
 
 @register.filter
+def is_admin(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    try:
+        return user.profile.role == 'admin'
+    except Exception:
+        return True
+
+
+@register.filter
 def get_item(dictionary, key):
     return dictionary.get(key, 0)
 

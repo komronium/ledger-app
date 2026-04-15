@@ -1,4 +1,35 @@
+from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+class UserProfile(models.Model):
+    ROLE_ADMIN = 'admin'
+    ROLE_OPERATOR = 'operator'
+    ROLE_CHOICES = [
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_OPERATOR, 'Operator'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_OPERATOR)
+
+    class Meta:
+        db_table = 'user_profiles'
+
+    def __str__(self):
+        return f"{self.user.username} ({self.role})"
+
+    def is_admin(self):
+        return self.role == self.ROLE_ADMIN or self.user.is_superuser
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        role = UserProfile.ROLE_ADMIN if instance.is_superuser else UserProfile.ROLE_OPERATOR
+        UserProfile.objects.get_or_create(user=instance, defaults={'role': role})
 
 
 class Supplier(models.Model):

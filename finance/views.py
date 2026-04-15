@@ -2,6 +2,7 @@ import json
 from datetime import date
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView as LView
 from django.db import models
 from django.http import HttpResponse
@@ -21,7 +22,25 @@ from finance.forms import (
     PaymentEditForm,
     PaymentForm,
 )
-from finance.models import Product, Customer, Order, PaymentHistory, Supplier, Expense, Purchase, SupplierPayment
+from finance.models import Product, Customer, Order, PaymentHistory, Supplier, Expense, Purchase, SupplierPayment, UserProfile
+
+
+def _is_admin(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    try:
+        return user.profile.role == UserProfile.ROLE_ADMIN
+    except Exception:
+        return True
+
+
+class AdminOnlyMixin(LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if not _is_admin(request.user):
+            return redirect('dashboard')
+        return super().dispatch(request, *args, **kwargs)
 
 
 class LoginView(LView):
@@ -287,7 +306,7 @@ class OrderDeleteView(LoginRequiredMixin, View):
         return redirect("dashboard")
 
 
-class CustomerView(LoginRequiredMixin, View):
+class CustomerView(AdminOnlyMixin, View):
     template_name = "customer.html"
 
     def get(self, request):
@@ -326,13 +345,13 @@ class CustomerView(LoginRequiredMixin, View):
         return redirect("customer")
 
 
-class CustomerDeleteView(LoginRequiredMixin, View):
+class CustomerDeleteView(AdminOnlyMixin, View):
     def delete(self, request, pk):
         Customer.objects.filter(id=pk).delete()
         return HttpResponse(status=204)
 
 
-class DebtView(LoginRequiredMixin, View):
+class DebtView(AdminOnlyMixin, View):
     template_name = "debt.html"
 
     def get(self, request):
@@ -382,7 +401,7 @@ class DebtView(LoginRequiredMixin, View):
         return redirect("debts")
 
 
-class PaymentEditView(LoginRequiredMixin, View):
+class PaymentEditView(AdminOnlyMixin, View):
     template_name = "payment_edit.html"
 
     def get_context(self, form, payment):
@@ -409,7 +428,7 @@ class PaymentEditView(LoginRequiredMixin, View):
         return render(request, self.template_name, self.get_context(form, payment))
 
 
-class PaymentDeleteView(LoginRequiredMixin, View):
+class PaymentDeleteView(AdminOnlyMixin, View):
     def get(self, request, pk):
         payment = get_object_or_404(PaymentHistory, id=pk)
         customer = payment.customer
@@ -419,7 +438,7 @@ class PaymentDeleteView(LoginRequiredMixin, View):
         return redirect("debts")
 
 
-class ProductView(LoginRequiredMixin, View):
+class ProductView(AdminOnlyMixin, View):
     template_name = "product.html"
 
     def parse_month(self, month_str):
@@ -470,13 +489,13 @@ class ProductView(LoginRequiredMixin, View):
         return redirect("product")
 
 
-class ProductDeleteView(LoginRequiredMixin, View):
+class ProductDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         Product.objects.filter(pk=pk).delete()
         return redirect("product")
 
 
-class ProductEditView(LoginRequiredMixin, View):
+class ProductEditView(AdminOnlyMixin, View):
     def post(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
         form = ProductForm(request.POST, instance=product)
@@ -485,7 +504,7 @@ class ProductEditView(LoginRequiredMixin, View):
         return redirect("product")
 
 
-class StatisticsView(LoginRequiredMixin, View):
+class StatisticsView(AdminOnlyMixin, View):
     template_name = "stats.html"
 
     MONTH_NAMES = [
@@ -618,7 +637,7 @@ class StatisticsView(LoginRequiredMixin, View):
         return render(request, self.template_name, context=context)
 
 
-class SupplierView(LoginRequiredMixin, View):
+class SupplierView(AdminOnlyMixin, View):
     template_name = "supplier.html"
 
     def get(self, request):
@@ -649,13 +668,13 @@ class SupplierView(LoginRequiredMixin, View):
         return redirect('supplier')
 
 
-class SupplierDeleteView(LoginRequiredMixin, View):
+class SupplierDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         Supplier.objects.filter(pk=pk).delete()
         return redirect('supplier')
 
 
-class SupplierDetailView(LoginRequiredMixin, View):
+class SupplierDetailView(AdminOnlyMixin, View):
     template_name = 'supplier_detail.html'
 
     def get(self, request, pk):
@@ -705,7 +724,7 @@ class SupplierDetailView(LoginRequiredMixin, View):
         return redirect('supplier_detail', pk=pk)
 
 
-class PurchaseDeleteView(LoginRequiredMixin, View):
+class PurchaseDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         purchase = get_object_or_404(Purchase, pk=pk)
         supplier_pk = purchase.supplier.pk
@@ -713,7 +732,7 @@ class PurchaseDeleteView(LoginRequiredMixin, View):
         return redirect('supplier_detail', pk=supplier_pk)
 
 
-class SupplierPaymentDeleteView(LoginRequiredMixin, View):
+class SupplierPaymentDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         payment = get_object_or_404(SupplierPayment, pk=pk)
         supplier_pk = payment.supplier.pk
@@ -721,7 +740,86 @@ class SupplierPaymentDeleteView(LoginRequiredMixin, View):
         return redirect('supplier_detail', pk=supplier_pk)
 
 
-class ExpenseView(LoginRequiredMixin, View):
+class ProfileView(AdminOnlyMixin, View):
+    def get(self, request):
+        return redirect('operator')
+
+    def post(self, request):
+        return redirect('operator')
+
+
+class OperatorView(AdminOnlyMixin, View):
+    template_name = 'operator.html'
+
+    def _all_users(self):
+        return User.objects.select_related('profile').order_by('-is_superuser', 'username')
+
+    def get(self, request):
+        return render(request, self.template_name, {'users': self._all_users(), 'page': 'operator'})
+
+    def post(self, request):
+        action = request.POST.get('action')
+        error = None
+        success = None
+
+        if action == 'add_user':
+            username = request.POST.get('username', '').strip()
+            password = request.POST.get('password', '').strip()
+            role = request.POST.get('role', UserProfile.ROLE_OPERATOR)
+            if not username or not password:
+                error = "Username va parol to'ldirilishi shart."
+            elif User.objects.filter(username=username).exists():
+                error = f"'{username}' allaqachon band."
+            else:
+                new_user = User.objects.create_user(username=username, password=password)
+                UserProfile.objects.filter(user=new_user).update(role=role)
+                success = "added"
+
+        elif action == 'edit_user':
+            user_id = request.POST.get('user_id')
+            target = get_object_or_404(User, pk=user_id)
+            new_username = request.POST.get('new_username', '').strip()
+            new_password = request.POST.get('new_password', '').strip()
+            new_role = request.POST.get('new_role', '')
+
+            if new_username and new_username != target.username:
+                if User.objects.filter(username=new_username).exclude(pk=target.pk).exists():
+                    error = f"'{new_username}' allaqachon band."
+                else:
+                    target.username = new_username
+                    target.save()
+
+            if not error and new_password:
+                if len(new_password) < 4:
+                    error = "Parol kamida 4 ta belgidan iborat bo'lishi kerak."
+                else:
+                    target.set_password(new_password)
+                    target.save()
+                    if target == request.user:
+                        from django.contrib.auth import update_session_auth_hash
+                        update_session_auth_hash(request, target)
+
+            if not error and new_role in (UserProfile.ROLE_ADMIN, UserProfile.ROLE_OPERATOR):
+                UserProfile.objects.filter(user=target).update(role=new_role)
+
+            if not error:
+                success = "updated"
+
+        return render(request, self.template_name, {
+            'users': self._all_users(),
+            'page': 'operator',
+            'error': error,
+            'success': success,
+        })
+
+
+class OperatorDeleteView(AdminOnlyMixin, View):
+    def post(self, request, pk):
+        User.objects.filter(pk=pk, profile__role=UserProfile.ROLE_OPERATOR).delete()
+        return redirect('operator')
+
+
+class ExpenseView(AdminOnlyMixin, View):
     template_name = 'expense.html'
 
     def get(self, request):
@@ -740,7 +838,7 @@ class ExpenseView(LoginRequiredMixin, View):
         return redirect('expense')
 
 
-class ExpenseDeleteView(LoginRequiredMixin, View):
+class ExpenseDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         Expense.objects.filter(pk=pk).delete()
         return redirect('expense')
