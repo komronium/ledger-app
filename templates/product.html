@@ -7,23 +7,30 @@
         {% csrf_token %}
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Mahsulot nomi</label>
-            <input required type="text" name="name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all" placeholder="M400, M500...">
+            <input required type="text" name="name"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
+                placeholder="M400, M500...">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Narxi (so'm)</label>
-            <input required type="number" name="price" min="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all" placeholder="0">
+            <input required type="number" name="price" min="0"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
+                placeholder="0">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Firma</label>
-            <select name="supplier" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all">
+            <select name="supplier"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all">
                 <option value="">— Tanlang —</option>
                 {% for s in suppliers %}
-                    <option value="{{ s.id }}">{{ s.name }}</option>
+                <option value="{{ s.id }}">{{ s.name }}</option>
                 {% endfor %}
             </select>
         </div>
         <div>
-            <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all">+ Mahsulot Qo'shish</button>
+            <button type="submit"
+                class="w-full gradient-bg text-white py-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all">+
+                Mahsulot Qo'shish</button>
         </div>
     </form>
 </div>
@@ -32,8 +39,10 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
         <h3 class="text-xl font-bold text-gray-800">Mahsulotlar Ro'yxati</h3>
         <div class="flex gap-2 items-center">
-            <input onchange="setFilter()" value="{{ selected_month }}" type="month" id="filterMonth" class="p-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 transition-all">
-            <button onclick="generatePDF()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:shadow-lg transition-all">PDF</button>
+            <input onchange="setFilter()" value="{{ selected_month }}" type="month" id="filterMonth"
+                class="p-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 transition-all">
+            <button onclick="generatePDF()"
+                class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:shadow-lg transition-all">PDF</button>
         </div>
     </div>
     <div class="overflow-x-auto">
@@ -42,6 +51,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Mahsulot</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Narxi</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Mavjud</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Firma</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Sotilgan (oy)</th>
                     <th class="px-4 py-3"></th>
@@ -52,6 +62,10 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ product.name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ product.price|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span
+                            class="{% if product.quantity <= 0 %}text-red-600 font-semibold{% else %}text-gray-700{% endif %}">{{ product.quantity }}</span>
+                    </td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ product.supplier.name|default:"—" }}</td>
                     <td class="px-4 py-3 text-sm font-medium text-gray-700">{{ product.total_quantity|default:0|format_currency }}</td>
                     <td class="px-4 py-3 text-right">
@@ -59,13 +73,21 @@
                             <button type="button"
                                 onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.price }}, '{{ product.supplier_id|default:'' }}')"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm font-medium transition-all">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
                                 Tahrirlash
                             </button>
-                            <form action="{% url 'product_delete' product.id %}" method="POST" onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
+                            <form action="{% url 'product_delete' product.id %}" method="POST"
+                                onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
                                 {% csrf_token %}
-                                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
                                     O'chirish
                                 </button>
                             </form>
@@ -73,12 +95,14 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="px-4 py-8 text-sm text-gray-400 text-center">Hozircha mahsulotlar yo'q</td></tr>
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-sm text-gray-400 text-center">Hozircha mahsulotlar yo'q</td>
+                </tr>
                 {% endfor %}
             </tbody>
             <tfoot class="bg-green-50">
                 <tr>
-                    <td colspan="3" class="px-4 py-4 text-sm font-bold text-gray-800">Jami:</td>
+                    <td colspan="4" class="px-4 py-4 text-sm font-bold text-gray-800">Jami:</td>
                     <td class="px-4 py-4 text-sm font-semibold text-green-700">{{ total_quantity|format_currency }}</td>
                     <td></td>
                 </tr>
@@ -88,12 +112,16 @@
 </div>
 
 <!-- Edit Modal -->
-<div id="editProductModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+<div id="editProductModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <h3 class="text-base font-bold text-gray-800">Mahsulotni Tahrirlash</h3>
-            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <button onclick="closeEditModal()"
+                class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
             </button>
         </div>
         <form id="editProductForm" method="POST" action="">
@@ -102,84 +130,86 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Mahsulot nomi</label>
                     <input required type="text" id="editName" name="name"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all">
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Narxi (so'm)</label>
                     <input required type="number" id="editPrice" name="price" min="0"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all">
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Firma</label>
                     <select id="editSupplier" name="supplier"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all">
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all">
                         <option value="">— Tanlang —</option>
                         {% for s in suppliers %}
-                            <option value="{{ s.id }}">{{ s.name }}</option>
+                        <option value="{{ s.id }}">{{ s.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
             <div class="px-6 pb-5 flex gap-3 justify-end">
-                <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">Bekor</button>
-                <button type="submit" class="px-5 py-2.5 rounded-lg gradient-bg text-white text-sm font-bold hover:shadow-lg transition-all">Saqlash</button>
+                <button type="button" onclick="closeEditModal()"
+                    class="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">Bekor</button>
+                <button type="submit"
+                    class="px-5 py-2.5 rounded-lg gradient-bg text-white text-sm font-bold hover:shadow-lg transition-all">Saqlash</button>
             </div>
         </form>
     </div>
 </div>
 
-        <script>
-        function openEditModal(id, name, price, supplierId) {
-            document.getElementById('editProductForm').action = '/product/edit/' + id + '/';
-            document.getElementById('editName').value = name;
-            document.getElementById('editPrice').value = price;
-            const sel = document.getElementById('editSupplier');
-            for (let i = 0; i < sel.options.length; i++) {
-                sel.options[i].selected = (sel.options[i].value == supplierId);
-            }
-            document.getElementById('editProductModal').classList.remove('hidden');
+<script>
+    function openEditModal(id, name, price, supplierId) {
+        document.getElementById('editProductForm').action = '/product/edit/' + id + '/';
+        document.getElementById('editName').value = name;
+        document.getElementById('editPrice').value = price;
+        const sel = document.getElementById('editSupplier');
+        for (let i = 0; i < sel.options.length; i++) {
+            sel.options[i].selected = (sel.options[i].value == supplierId);
         }
+        document.getElementById('editProductModal').classList.remove('hidden');
+    }
 
-        function closeEditModal() {
-            document.getElementById('editProductModal').classList.add('hidden');
+    function closeEditModal() {
+        document.getElementById('editProductModal').classList.add('hidden');
+    }
+
+    document.getElementById('editProductModal').addEventListener('click', function (e) {
+        if (e.target === this) closeEditModal();
+    });
+
+    function setFilter() {
+        const month = document.getElementById('filterMonth').value;
+        const currentUrl = new URL(window.location);
+        if (month) {
+            currentUrl.searchParams.set('month', month);
+        } else {
+            currentUrl.searchParams.delete('month');
         }
-
-        document.getElementById('editProductModal').addEventListener('click', function(e) {
-            if (e.target === this) closeEditModal();
-        });
-
-        function setFilter() {
-            const month = document.getElementById('filterMonth').value;
-            const currentUrl = new URL(window.location);
-            if (month) {
-                currentUrl.searchParams.set('month', month);
-            } else {
-                currentUrl.searchParams.delete('month');
-            }
-            window.location.href = currentUrl.toString();
-        }
+        window.location.href = currentUrl.toString();
+    }
 
     function generatePDF() {
-    const element = document.getElementById("productList");
+        const element = document.getElementById("productList");
 
-    const opt = {
-        margin:       0,
-        filename:     'document.pdf',
-        image:        { type: 'jpeg', quality: 1 },
-        html2canvas:  {
-            scale: 2,
-            useCORS: true,
-            logging: true,
-            scrollY: 0,
-            windowWidth: document.body.scrollWidth,
-            windowHeight: document.body.scrollHeight,
-        },
-        jsPDF:        {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'landscape'
-        }
-    };
+        const opt = {
+            margin: 0,
+            filename: 'document.pdf',
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                logging: true,
+                scrollY: 0,
+                windowWidth: document.body.scrollWidth,
+                windowHeight: document.body.scrollHeight,
+            },
+            jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'landscape'
+            }
+        };
         html2pdf().set(opt).from(element).save();
     }
 </script>

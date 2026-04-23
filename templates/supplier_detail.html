@@ -4,12 +4,16 @@
 
 <!-- Header -->
 <div class="flex items-center gap-4 mb-6">
-    <a href="{% url 'supplier' %}" class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-all">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <a href="{% url 'supplier' %}"
+        class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
     </a>
     <div>
         <h2 class="text-2xl font-bold text-gray-800">{{ supplier.name }}</h2>
-        {% if supplier.phone %}<p class="text-sm text-gray-500">{{ supplier.phone }}{% if supplier.address %} · {{ supplier.address }}{% endif %}</p>{% endif %}
+        {% if supplier.phone %}<p class="text-sm text-gray-500">{{ supplier.phone }}{% if supplier.address %} · {{
+            supplier.address }}{% endif %}</p>{% endif %}
     </div>
 </div>
 
@@ -25,7 +29,8 @@
         <div class="text-xl font-black text-emerald-600">{{ total_paid|format_currency }}</div>
         <div class="text-xs text-gray-400 mt-0.5">so'm</div>
     </div>
-    <div class="bg-white rounded-2xl border {% if debt > 0 %}border-red-200 bg-red-50{% else %}border-emerald-100 bg-emerald-50{% endif %} p-4 shadow-sm">
+    <div
+        class="bg-white rounded-2xl border {% if debt > 0 %}border-red-200 bg-red-50{% else %}border-emerald-100 bg-emerald-50{% endif %} p-4 shadow-sm">
         <div class="text-xs font-medium text-gray-400 mb-1">Qarz (bizda)</div>
         <div class="text-xl font-black {% if debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ debt|format_currency }}</div>
         <div class="text-xs text-gray-400 mt-0.5">so'm</div>
@@ -49,28 +54,62 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Mahsulot</label>
-                    <select name="product" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <select name="product"
+                        class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         <option value="">— Tanlang —</option>
                         {% for p in products %}
-                            <option value="{{ p.id }}">{{ p.name }}</option>
+                        <option value="{{ p.id }}">{{ p.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Miqdor</label>
-                        <input required type="number" name="quantity" min="1" placeholder="0" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input required type="number" name="quantity" min="1" placeholder="0"
+                            class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Birlik narxi</label>
-                        <input required type="number" name="price_per_unit" min="0" placeholder="0" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <label class="flex items-center gap-1 text-xs"><input type="radio"
+                                        name="purchase_currency" value="sum" checked onchange="togglePurchaseCurrency()"
+                                        class="text-blue-600"> So'm</label>
+                                <label class="flex items-center gap-1 text-xs"><input type="radio"
+                                        name="purchase_currency" value="usd" onchange="togglePurchaseCurrency()"
+                                        class="text-blue-600"> $</label>
+                            </div>
+                            <div id="purchaseSumDiv">
+                                <input required type="number" name="price_per_unit" id="purchaseSumInput" min="0"
+                                    placeholder="So'mda"
+                                    class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div id="purchaseUsdDiv" class="hidden space-y-2">
+                                <input type="number" id="purchaseUsdAmount" placeholder="Dollar"
+                                    class="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                                    oninput="calculatePurchaseSum()">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">Kurs:</span>
+                                    <input type="number" id="purchaseRate" value="12700"
+                                        class="w-20 p-1.5 border border-gray-300 rounded text-sm"
+                                        oninput="calculatePurchaseSum()">
+                                    <span class="text-xs text-gray-500">=</span>
+                                    <input type="number" name="price_per_unit" id="purchaseConverted"
+                                        class="flex-1 p-1.5 border border-blue-300 rounded bg-blue-50 text-sm font-semibold"
+                                        readonly>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Izoh</label>
-                    <input type="text" name="note" placeholder="ixtiyoriy..." class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="note" placeholder="ixtiyoriy..."
+                        class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <button type="submit" class="w-full gradient-bg text-white py-2.5 rounded-lg font-bold text-sm hover:shadow-lg transition-all">Xaridni Saqlash</button>
+                <button type="submit"
+                    class="w-full gradient-bg text-white py-2.5 rounded-lg font-bold text-sm hover:shadow-lg transition-all">Xaridni
+                    Saqlash</button>
             </div>
         </form>
     </div>
@@ -83,12 +122,41 @@
             <input type="hidden" name="action" value="payment">
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Summa (so'm)</label>
-                    <input required type="number" name="amount" min="1" placeholder="0" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Summa</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <label class="flex items-center gap-1 text-xs"><input type="radio" name="payment_currency"
+                                    value="sum" checked onchange="togglePaymentCurrency()" class="text-emerald-600">
+                                So'm</label>
+                            <label class="flex items-center gap-1 text-xs"><input type="radio" name="payment_currency"
+                                    value="usd" onchange="togglePaymentCurrency()" class="text-emerald-600"> $</label>
+                        </div>
+                        <div id="paymentSumDiv">
+                            <input required type="number" name="amount" id="paymentSumInput" min="1"
+                                placeholder="So'mda"
+                                class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div id="paymentUsdDiv" class="hidden space-y-2">
+                            <input type="number" id="paymentUsdAmount" placeholder="Dollar"
+                                class="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                                oninput="calculatePaymentSum()">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">Kurs:</span>
+                                <input type="number" id="paymentRate" value="12700"
+                                    class="w-20 p-1.5 border border-gray-300 rounded text-sm"
+                                    oninput="calculatePaymentSum()">
+                                <span class="text-xs text-gray-500">=</span>
+                                <input type="number" name="amount" id="paymentConverted"
+                                    class="flex-1 p-1.5 border border-emerald-300 rounded bg-emerald-50 text-sm font-semibold"
+                                    readonly>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">To'lov turi</label>
-                    <select name="payment_type" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <select name="payment_type"
+                        class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         <option value="">— Tanlang —</option>
                         <option value="cash">Naqd</option>
                         <option value="bank">Pul ko'chirish</option>
@@ -97,9 +165,12 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Izoh</label>
-                    <input type="text" name="comment" placeholder="ixtiyoriy..." class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="comment" placeholder="ixtiyoriy..."
+                        class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-2.5 rounded-lg font-bold text-sm hover:shadow-lg transition-all">To'lovni Saqlash</button>
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-2.5 rounded-lg font-bold text-sm hover:shadow-lg transition-all">To'lovni
+                    Saqlash</button>
             </div>
         </form>
     </div>
@@ -134,23 +205,31 @@
                     <td class="px-4 py-3 text-right font-bold text-gray-800">{{ p.total_cost|format_currency }}</td>
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ p.note|default:"—" }}</td>
                     <td class="px-4 py-3 text-right">
-                        <form action="{% url 'purchase_delete' p.pk %}" method="POST" onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
+                        <form action="{% url 'purchase_delete' p.pk %}" method="POST"
+                            onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
                             {% csrf_token %}
-                            <button type="submit" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <button type="submit"
+                                class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                             </button>
                         </form>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">Hozircha xaridlar yo'q</td></tr>
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">Hozircha xaridlar yo'q</td>
+                </tr>
                 {% endfor %}
             </tbody>
             {% if purchases %}
             <tfoot class="bg-gray-50 border-t border-gray-200">
                 <tr>
                     <td colspan="4" class="px-4 py-3 text-sm font-bold text-gray-700">Jami:</td>
-                    <td class="px-4 py-3 text-right font-black text-gray-800">{{ total_purchased|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-right font-black text-gray-800">{{ total_purchased|format_currency }} so'm
+                    </td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>
@@ -189,26 +268,35 @@
                             {{ pay.get_payment_type_display|default:"—" }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ pay.amount|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ pay.amount|format_currency }} so'm
+                    </td>
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ pay.comment|default:"—" }}</td>
                     <td class="px-4 py-3 text-right">
-                        <form action="{% url 'supplier_payment_delete' pay.pk %}" method="POST" onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
+                        <form action="{% url 'supplier_payment_delete' pay.pk %}" method="POST"
+                            onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
                             {% csrf_token %}
-                            <button type="submit" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <button type="submit"
+                                class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                             </button>
                         </form>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">Hozircha to'lovlar yo'q</td></tr>
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">Hozircha to'lovlar yo'q</td>
+                </tr>
                 {% endfor %}
             </tbody>
             {% if payments %}
             <tfoot class="bg-gray-50 border-t border-gray-200">
                 <tr>
                     <td colspan="2" class="px-4 py-3 text-sm font-bold text-gray-700">Jami to'landi:</td>
-                    <td class="px-4 py-3 text-right font-black text-emerald-600">{{ total_paid|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-right font-black text-emerald-600">{{ total_paid|format_currency }} so'm
+                    </td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>
@@ -216,5 +304,69 @@
         </table>
     </div>
 </div>
+
+<script>
+    // Purchase currency conversion
+    function togglePurchaseCurrency() {
+        const sumDiv = document.getElementById('purchaseSumDiv');
+        const usdDiv = document.getElementById('purchaseUsdDiv');
+        const sumInput = document.getElementById('purchaseSumInput');
+        const usdInput = document.getElementById('purchaseConverted');
+        const isUsd = document.querySelector('input[name="purchase_currency"]:checked').value === 'usd';
+
+        if (isUsd) {
+            sumDiv.classList.add('hidden');
+            usdDiv.classList.remove('hidden');
+            sumInput.removeAttribute('name');
+            sumInput.removeAttribute('required');
+            usdInput.setAttribute('name', 'price_per_unit');
+            usdInput.setAttribute('required', '');
+        } else {
+            sumDiv.classList.remove('hidden');
+            usdDiv.classList.add('hidden');
+            usdInput.removeAttribute('name');
+            usdInput.removeAttribute('required');
+            sumInput.setAttribute('name', 'price_per_unit');
+            sumInput.setAttribute('required', '');
+        }
+    }
+
+    function calculatePurchaseSum() {
+        const usd = parseFloat(document.getElementById('purchaseUsdAmount').value) || 0;
+        const rate = parseFloat(document.getElementById('purchaseRate').value) || 12700;
+        document.getElementById('purchaseConverted').value = Math.round(usd * rate);
+    }
+
+    // Payment currency conversion
+    function togglePaymentCurrency() {
+        const sumDiv = document.getElementById('paymentSumDiv');
+        const usdDiv = document.getElementById('paymentUsdDiv');
+        const sumInput = document.getElementById('paymentSumInput');
+        const usdInput = document.getElementById('paymentConverted');
+        const isUsd = document.querySelector('input[name="payment_currency"]:checked').value === 'usd';
+
+        if (isUsd) {
+            sumDiv.classList.add('hidden');
+            usdDiv.classList.remove('hidden');
+            sumInput.removeAttribute('name');
+            sumInput.removeAttribute('required');
+            usdInput.setAttribute('name', 'amount');
+            usdInput.setAttribute('required', '');
+        } else {
+            sumDiv.classList.remove('hidden');
+            usdDiv.classList.add('hidden');
+            usdInput.removeAttribute('name');
+            usdInput.removeAttribute('required');
+            sumInput.setAttribute('name', 'amount');
+            sumInput.setAttribute('required', '');
+        }
+    }
+
+    function calculatePaymentSum() {
+        const usd = parseFloat(document.getElementById('paymentUsdAmount').value) || 0;
+        const rate = parseFloat(document.getElementById('paymentRate').value) || 12700;
+        document.getElementById('paymentConverted').value = Math.round(usd * rate);
+    }
+</script>
 
 {% endblock %}

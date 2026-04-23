@@ -66,6 +66,7 @@ class Product(models.Model):
 
     name = models.CharField(max_length=50)
     price = models.IntegerField(default=0, verbose_name="Narxi")
+    quantity = models.IntegerField(default=0, verbose_name="Mavjud miqdor (kg)")
     supplier = models.ForeignKey(
         Supplier, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='products', verbose_name="Firma"
@@ -97,9 +98,19 @@ class Order(models.Model):
         verbose_name_plural = 'Orders'
 
     def save(self, *args, **kwargs):
+        # Calculate totals
         self.total_price = self.quantity * self.price_per_kg
-        self.remaining_debt = self.total_price
+        # Only set remaining_debt on creation, not on updates
+        if self.pk is None:
+            self.remaining_debt = self.total_price
+
+        if self.pk is None and self.product:
+            self.product.quantity -= self.quantity
+            self.product.save()
+            
         super().save(*args, **kwargs)
+        # Subtract quantity from product stock for new orders
+        
 
     def __str__(self):
         return f"{self.customer.name} - {self.product.name} - {self.order_date}"
@@ -148,8 +159,14 @@ class Purchase(models.Model):
         ordering = ['-purchase_date']
 
     def save(self, *args, **kwargs):
+        # Check if this is a new purchase (not an update)
+        is_new = self.pk is None
         self.total_cost = self.quantity * self.price_per_unit
         super().save(*args, **kwargs)
+        # Add quantity to product stock for new purchases
+        if is_new and self.product:
+            self.product.quantity += self.quantity
+            self.product.save()
 
     def __str__(self):
         return f"{self.supplier.name} - {self.product} - {self.purchase_date}"

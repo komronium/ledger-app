@@ -12,33 +12,75 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Mijoz</label>
                     <div class="relative">
-                        <input value="{{ order.customer.name }}" type="text" required id="clientSearch" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-300 text-sm" placeholder="Mijoz qidirish..." oninput="searchClients()" onfocus="showClientDropdown()" onblur="hideClientDropdown()">
-                        <div id="clientDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
+                        <input value="{{ order.customer.name }}" type="text" required id="clientSearch"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-300 text-sm"
+                            placeholder="Mijoz qidirish..." oninput="searchClients()" onfocus="showClientDropdown()"
+                            onblur="hideClientDropdown()">
+                        <div id="clientDropdown"
+                            class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
                             <!-- Client options will be populated here -->
                         </div>
                     </div>
                     <input type="hidden" name="customer_id" id="selectedClientId" value="{{ order.customer.id }}">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">To'langan Summa</label>
-                    <input type="text" name="payment_amount" id="paidDebtAmount" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm" placeholder="0">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">To'lov summasi</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 text-xs">
+                                <input type="radio" name="currency_type" value="sum" checked onchange="toggleCurrency()"
+                                    class="text-green-600">
+                                So'm
+                            </label>
+                            <label class="flex items-center gap-1.5 text-xs">
+                                <input type="radio" name="currency_type" value="usd" onchange="toggleCurrency()"
+                                    class="text-green-600">
+                                Dollar
+                            </label>
+                        </div>
+                        <div id="sumInputDiv">
+                            <input type="number" name="payment_amount" id="paidDebtAmount"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm"
+                                placeholder="So'mda kiriting">
+                        </div>
+                        <div id="usdInputDiv" class="hidden space-y-2">
+                            <input type="number" id="usdAmount"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm"
+                                placeholder="Dollar miqdori" oninput="calculateSum()">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">Kurs:</span>
+                                <input type="number" id="exchangeRate"
+                                    class="w-24 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white text-sm"
+                                    placeholder="12700" value="12700" oninput="calculateSum()">
+                                <span class="text-xs text-gray-500">=</span>
+                                <input type="number" name="payment_amount" id="convertedSum"
+                                    class="flex-1 p-2 border border-green-300 rounded-lg bg-green-50 text-sm font-semibold"
+                                    placeholder="So'mda" readonly>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">To'lov turi</label>
-                    <select name="payment_type" id="debtPaymentType" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
+                    <select name="payment_type" id="debtPaymentType"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
                         <option value="">To'lov turini tanlang</option>
                         {% for choice in payment_type_choices %}
-                            <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                        <option value="{{ choice.0 }}">{{ choice.1 }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Izoh</label>
-                <textarea name="comment" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm" placeholder="Izoh qoldiring..."></textarea>
+                <textarea name="comment" rows="3"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm"
+                    placeholder="Izoh qoldiring..."></textarea>
             </div>
             <div class="flex justify-end">
-                <button type="submit" class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-6 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-bold text-sm shadow-lg hover:shadow-xl">Qarzni Qabul Qilish</button>
+                <button type="submit"
+                    class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-6 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-bold text-sm shadow-lg hover:shadow-xl">Qarzni
+                    Qabul Qilish</button>
             </div>
         </form>
         <div id="clientDebtInfo" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg hidden">
@@ -50,34 +92,46 @@
     <!-- Debt Payments History -->
     <div id="invoice" class="glass-card rounded-3xl shadow-2xl p-10 card-hover">
         <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-4">Qarz To'lovlari Tarixi</h3>
-                        <div class="flex gap-2">
-                            <a href="{% url 'debts' %}?year=2024" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2024 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2024</a>
-                            <a href="{% url 'debts' %}?year=2025" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2025 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2025</a>
-                            <a href="{% url 'debts' %}?year=2026" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2026 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2026</a>
-                        </div>
-                    </div>
-                    <button onclick="generatePDF()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 font-bold text-sm shadow-lg">Hisobotni Yuklash</button>
+            <div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Qarz To'lovlari Tarixi</h3>
+                <div class="flex gap-2">
+                    <a href="{% url 'debts' %}?year=2024"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2024 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2024</a>
+                    <a href="{% url 'debts' %}?year=2025"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2025 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2025</a>
+                    <a href="{% url 'debts' %}?year=2026"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {% if selected_year == 2026 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2026</a>
                 </div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Mijoz nomi bo'yicha</label>
-                            <div class="relative">
-                                <input type="text" id="filterClientNameSearch" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-300 text-sm" placeholder="Mijoz qidirish..." oninput="searchFilterClients()" onfocus="showFilterClientDropdown()" onblur="hideFilterClientDropdown()">
-                                <div id="filterClientDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
-                            </div>
-                            <input oninput="setFilter()" type="hidden" id="selectedFilterClientId" name="customer_id" value="">
-                        </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Sana (dan)</label>
-                        <input onchange="setFilter()" value="{{ date_from }}" type="date" id="filterDebtDateFrom" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Sana (gacha)</label>
-                        <input onchange="setFilter()" value="{{ date_to }}" type="date" id="filterDebtDateTo" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
+            </div>
+            <button onclick="generatePDF()"
+                class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 font-bold text-sm shadow-lg">Hisobotni
+                Yuklash</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mijoz nomi bo'yicha</label>
+                <div class="relative">
+                    <input type="text" id="filterClientNameSearch"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-300 text-sm"
+                        placeholder="Mijoz qidirish..." oninput="searchFilterClients()"
+                        onfocus="showFilterClientDropdown()" onblur="hideFilterClientDropdown()">
+                    <div id="filterClientDropdown"
+                        class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
                     </div>
                 </div>
+                <input oninput="setFilter()" type="hidden" id="selectedFilterClientId" name="customer_id" value="">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sana (dan)</label>
+                <input onchange="setFilter()" value="{{ date_from }}" type="date" id="filterDebtDateFrom"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sana (gacha)</label>
+                <input onchange="setFilter()" value="{{ date_to }}" type="date" id="filterDebtDateTo"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all duration-300 text-sm">
+            </div>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full table-auto">
                 <thead class="bg-gradient-to-r from-green-100 to-emerald-100 rounded-2xl">
@@ -92,60 +146,98 @@
                 </thead>
                 <tbody id="debtPaymentsTable" class="divide-y divide-gray-300 font-medium">
                     {% for payment in payments %}
-            <tr>
-                <td class="px-6 py-4 text-sm text-gray-900">
-                    {{ payment.paid_at | date:"Y-m-d" }}
-                    <span class="ms-3">{{ payment.paid_at | time:"H:i" }}</span>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-900">{{ payment.customer.name }}</td>
-                <td class="px-6 py-4 text-sm text-green-600 font-medium">{{ payment.amount | format_currency }} so'm</td>
-                <td class="px-6 py-4 text-sm text-gray-900">{{ payment.get_payment_type_display|default:'-' }}</td>
-                <td class="px-6 py-4 text-sm text-gray-900">
-                    {% if payment.comment %}
-                        <div class="max-w-xs truncate" title="{{ payment.comment }}">{{ payment.comment }}</div>
-                    {% else %}
-                        <span class="text-gray-400">-</span>
-                    {% endif %}
-                </td>
-                
-                <td class="px-6 py-2 text-sm">
-                    <div class="flex space-x-2">
-                        <a href="{% url 'payment_edit' payment.id %}" class="text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-all duration-200 flex items-center space-x-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                            <span class="text-sm font-medium">Tahrirlash</span>
-                        </a>
-                        <a href="{% url 'payment_delete' payment.id %}" onclick="return confirm(`Rostan ham o'chirmoqchimisiz`)" class="text-red-600 hover:text-red-800 px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200 flex items-center space-x-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                            <span class="text-sm font-medium">O'chirish</span>
-                        </a>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
+                    <tr>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ payment.paid_at | date:"Y-m-d" }}
+                            <span class="ms-3">{{ payment.paid_at | time:"H:i" }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{ payment.customer.name }}</td>
+                        <td class="px-6 py-4 text-sm text-green-600 font-medium">{{ payment.amount | format_currency }}
+                            so'm</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{ payment.get_payment_type_display|default:'-' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {% if payment.comment %}
+                            <div class="max-w-xs truncate" title="{{ payment.comment }}">{{ payment.comment }}</div>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-6 py-2 text-sm">
+                            <div class="flex space-x-2">
+                                <a href="{% url 'payment_edit' payment.id %}"
+                                    class="text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-all duration-200 flex items-center space-x-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                        </path>
+                                    </svg>
+                                    <span class="text-sm font-medium">Tahrirlash</span>
+                                </a>
+                                <a href="{% url 'payment_delete' payment.id %}"
+                                    onclick="return confirm(`Rostan ham o'chirmoqchimisiz`)"
+                                    class="text-red-600 hover:text-red-800 px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200 flex items-center space-x-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
+                                    <span class="text-sm font-medium">O'chirish</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
                     {% if not payments %}
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 text-sm text-gray-500 text-center">Hozircha qarz to'lovlari mavjud emas</td>
-                        </tr>
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-sm text-gray-500 text-center">Hozircha qarz to'lovlari
+                            mavjud emas</td>
+                    </tr>
                     {% endif %}
-        </tbody>
-        <tfoot class="bg-gradient-to-r from-green-100 to-emerald-100">
-                            <tr>
-                                <td colspan="2" class="px-6 py-5 text-sm font-bold text-gray-800">JAMI:</td>
-                                <td class="px-6 py-5 text-sm font-bold text-green-600" id="totalDebtPayments">{{ total_amount | format_currency }} so'm</td>
-                                <td colspan="3" class="px-6 py-5 text-sm font-bold text-gray-800"></td>
-                            </tr>
-                        </tfoot>
+                </tbody>
+                <tfoot class="bg-gradient-to-r from-green-100 to-emerald-100">
+                    <tr>
+                        <td colspan="2" class="px-6 py-5 text-sm font-bold text-gray-800">JAMI:</td>
+                        <td class="px-6 py-5 text-sm font-bold text-green-600" id="totalDebtPayments">{{ total_amount | format_currency }} so'm</td>
+                        <td colspan="3" class="px-6 py-5 text-sm font-bold text-gray-800"></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-    function setFilter(){
+    // Currency conversion functions
+    function toggleCurrency() {
+        const sumDiv = document.getElementById('sumInputDiv');
+        const usdDiv = document.getElementById('usdInputDiv');
+        const sumInput = document.getElementById('paidDebtAmount');
+        const usdInput = document.getElementById('convertedSum');
+        const isUsd = document.querySelector('input[name="currency_type"]:checked').value === 'usd';
+
+        if (isUsd) {
+            sumDiv.classList.add('hidden');
+            usdDiv.classList.remove('hidden');
+            sumInput.removeAttribute('name');
+            usdInput.setAttribute('name', 'payment_amount');
+        } else {
+            sumDiv.classList.remove('hidden');
+            usdDiv.classList.add('hidden');
+            usdInput.removeAttribute('name');
+            sumInput.setAttribute('name', 'payment_amount');
+        }
+    }
+
+    function calculateSum() {
+        const usdAmount = parseFloat(document.getElementById('usdAmount').value) || 0;
+        const rate = parseFloat(document.getElementById('exchangeRate').value) || 12700;
+        const sum = Math.round(usdAmount * rate);
+        document.getElementById('convertedSum').value = sum;
+    }
+
+    function setFilter() {
         const clientSelect = document.getElementById('selectedFilterClientId');
         const dateFrom = document.getElementById('filterDebtDateFrom').value;
         const dateTo = document.getElementById('filterDebtDateTo').value;
@@ -159,176 +251,175 @@
     }
 
     function searchClients() {
-            const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
-            const dropdown = document.getElementById('clientDropdown');
-            
-            if (searchTerm.length === 0) {
-                dropdown.innerHTML = '';
-                dropdown.classList.add('hidden');
-                return;
-            }
-            
-            const filteredClients = clients.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) || 
-                client.phone.includes(searchTerm)
-            );
-            
+        const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
+        const dropdown = document.getElementById('clientDropdown');
+
+        if (searchTerm.length === 0) {
             dropdown.innerHTML = '';
-            
-            if (filteredClients.length === 0) {
-                dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
-            } else {
-                filteredClients.forEach(client => {
-                    const option = document.createElement('div');
-                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
-                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
-                    option.onclick = () => selectClient(client);
-                    dropdown.appendChild(option);
-                });
-            }
-            
-            dropdown.classList.remove('hidden');
+            dropdown.classList.add('hidden');
+            return;
         }
 
-        function selectClient(client) {
-            document.getElementById('clientSearch').value = client.name;
-            document.getElementById('selectedClientId').value = client.id;
+        const filteredClients = clients.filter(client =>
+            client.name.toLowerCase().includes(searchTerm) ||
+            client.phone.includes(searchTerm)
+        );
+
+        dropdown.innerHTML = '';
+
+        if (filteredClients.length === 0) {
+            dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
+        } else {
+            filteredClients.forEach(client => {
+                const option = document.createElement('div');
+                option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                option.onclick = () => selectClient(client);
+                dropdown.appendChild(option);
+            });
+        }
+
+        dropdown.classList.remove('hidden');
+    }
+
+    function selectClient(client) {
+        document.getElementById('clientSearch').value = client.name;
+        document.getElementById('selectedClientId').value = client.id;
+        document.getElementById('clientDropdown').classList.add('hidden');
+    }
+
+    function showClientDropdown() {
+        if (document.getElementById('clientSearch').value.length > 0) {
+            searchClients();
+        }
+    }
+
+    function hideClientDropdown() {
+        setTimeout(() => {
             document.getElementById('clientDropdown').classList.add('hidden');
-        }
-
-        function showClientDropdown() {
-            if (document.getElementById('clientSearch').value.length > 0) {
-                searchClients();
-            }
-        }
-
-        function hideClientDropdown() {
-            setTimeout(() => {
-                document.getElementById('clientDropdown').classList.add('hidden');
-            }, 200);
-        }
+        }, 200);
+    }
 
     function generatePDF() {
-    const element = document.getElementById("invoice");
+        const element = document.getElementById("invoice");
 
-    const opt = {
-        margin:       0,
-        filename:     'document.pdf',
-        image:        { type: 'jpeg', quality: 1 },
-        html2canvas:  {
-            scale: 2,
-            useCORS: true, // agar rasm bo'lsa
-            logging: true,
-            scrollY: 0, // skrollni hisobga olmasin
-            windowWidth: document.body.scrollWidth,
-            windowHeight: document.body.scrollHeight,
-        },
-        jsPDF:        {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'landscape' // <-- bu albom ko‘rinish uchun
-        }
-    };
-        html2pdf().set(opt).from(element).save();
-}
-function searchFilterClients() {
-            const searchTerm = document.getElementById('filterClientNameSearch').value.toLowerCase();
-            const dropdown = document.getElementById('filterClientDropdown');
-            
-            if (searchTerm.length === 0) {
-                dropdown.innerHTML = '';
-                dropdown.classList.add('hidden');
-                // Clear filter when search is empty
-                document.getElementById('selectedFilterClientId').value = '';
-                setFilter();
-                return;
+        const opt = {
+            margin: 0,
+            filename: 'document.pdf',
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true, // agar rasm bo'lsa
+                logging: true,
+                scrollY: 0, // skrollni hisobga olmasin
+                windowWidth: document.body.scrollWidth,
+                windowHeight: document.body.scrollHeight,
+            },
+            jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'landscape' // <-- bu albom ko‘rinish uchun
             }
-            
-            const filteredClients = clients.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) || 
-                client.phone.includes(searchTerm)
-            );
-            
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+    function searchFilterClients() {
+        const searchTerm = document.getElementById('filterClientNameSearch').value.toLowerCase();
+        const dropdown = document.getElementById('filterClientDropdown');
+
+        if (searchTerm.length === 0) {
             dropdown.innerHTML = '';
-            
+            dropdown.classList.add('hidden');
+            // Clear filter when search is empty
+            document.getElementById('selectedFilterClientId').value = '';
+            setFilter();
+            return;
+        }
+
+        const filteredClients = clients.filter(client =>
+            client.name.toLowerCase().includes(searchTerm) ||
+            client.phone.includes(searchTerm)
+        );
+
+        dropdown.innerHTML = '';
+
+        // Add "Barcha mijozlar" option
+        const allOption = document.createElement('div');
+        allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
+        allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
+        allOption.onclick = () => selectFilterClient(null);
+        dropdown.appendChild(allOption);
+
+        if (filteredClients.length === 0) {
+            dropdown.innerHTML += '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
+        } else {
+            filteredClients.forEach(client => {
+                const option = document.createElement('div');
+                option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                option.onclick = () => selectFilterClient(client);
+                dropdown.appendChild(option);
+            });
+        }
+
+        dropdown.classList.remove('hidden');
+    }
+
+    function selectFilterClient(client) {
+        if (client === null) {
+            // "Barcha mijozlar" selected
+            document.getElementById('filterClientNameSearch').value = '';
+            document.getElementById('selectedFilterClientId').value = ''
+            setFilter();
+        } else {
+            document.getElementById('filterClientNameSearch').value = client.name;
+            document.getElementById('selectedFilterClientId').value = client.id;
+            setFilter();
+        }
+        document.getElementById('filterClientDropdown').classList.add('hidden');
+    }
+
+    function showFilterClientDropdown() {
+        const searchTerm = document.getElementById('filterClientNameSearch').value;
+        if (searchTerm.length > 0) {
+            searchFilterClients();
+        } else {
+            // Show all clients when focused with empty search
+            const dropdown = document.getElementById('filterClientDropdown');
+            dropdown.innerHTML = '';
+
             // Add "Barcha mijozlar" option
             const allOption = document.createElement('div');
             allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
             allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
             allOption.onclick = () => selectFilterClient(null);
             dropdown.appendChild(allOption);
-            
-            if (filteredClients.length === 0) {
-                dropdown.innerHTML += '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>';
-            } else {
-                filteredClients.forEach(client => {
-                    const option = document.createElement('div');
-                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
-                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
-                    option.onclick = () => selectFilterClient(client);
-                    dropdown.appendChild(option);
-                });
-            }
-            
+
+            // Add all clients
+            clients.forEach(client => {
+                const option = document.createElement('div');
+                option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
+                option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
+                option.onclick = () => selectFilterClient(client);
+                dropdown.appendChild(option);
+            });
+
             dropdown.classList.remove('hidden');
         }
+    }
 
-        function selectFilterClient(client) {
-            if (client === null) {
-                // "Barcha mijozlar" selected
-                document.getElementById('filterClientNameSearch').value = '';
-                document.getElementById('selectedFilterClientId').value = ''
-                setFilter();
-            } else {
-                document.getElementById('filterClientNameSearch').value = client.name;
-                document.getElementById('selectedFilterClientId').value = client.id;
-                setFilter();
-            }
+    function hideFilterClientDropdown() {
+        setTimeout(() => {
             document.getElementById('filterClientDropdown').classList.add('hidden');
-        }
+        }, 200);
+    }
 
-        function showFilterClientDropdown() {
-            const searchTerm = document.getElementById('filterClientNameSearch').value;
-            if (searchTerm.length > 0) {
-                searchFilterClients();
-            } else {
-                // Show all clients when focused with empty search
-                const dropdown = document.getElementById('filterClientDropdown');
-                dropdown.innerHTML = '';
-                
-                // Add "Barcha mijozlar" option
-                const allOption = document.createElement('div');
-                allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
-                allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
-                allOption.onclick = () => selectFilterClient(null);
-                dropdown.appendChild(allOption);
-                
-                // Add all clients
-                clients.forEach(client => {
-                    const option = document.createElement('div');
-                    option.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100';
-                    option.innerHTML = `<div class="font-medium">${client.name}</div><div class="text-gray-500 text-xs">${client.phone}</div>`;
-                    option.onclick = () => selectFilterClient(client);
-                    dropdown.appendChild(option);
-                });
-                
-                dropdown.classList.remove('hidden');
-            }
-        }
-
-        function hideFilterClientDropdown() {
-            setTimeout(() => {
-                document.getElementById('filterClientDropdown').classList.add('hidden');
-            }, 200);
-        }
-
-        let clients = [
-            {% for customer in customers %}
-                {'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}'},
-            {% endfor %}
+    let clients = [
+        {% for customer in customers %}
+    { 'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}' },
+    {% endfor %}
         ]
 
 </script>
 
 {% endblock %}
-   

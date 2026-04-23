@@ -222,9 +222,12 @@ class OrderView(LoginRequiredMixin, View):
             total_paid_amount = 0
             total_debt = totals["total_debt"]
 
-        products_list = list(Product.objects.values('id', 'name', 'price'))
+        products_list = list(Product.objects.values('id', 'name', 'price', 'quantity'))
         import json as _json
         products_json = _json.dumps(products_list)
+
+        # Get any error messages from session
+        errors = request.session.pop('order_errors', None)
 
         context = {
             "orders": order_data,
@@ -238,6 +241,7 @@ class OrderView(LoginRequiredMixin, View):
             "total_debt": total_debt,
             "page": "dashboard",
             "customer": customer,
+            "errors": errors,
         }
 
         return render(request, self.template_name, context=context)
@@ -249,14 +253,22 @@ class OrderView(LoginRequiredMixin, View):
         except json.JSONDecodeError:
             orders_data = []
 
+        errors = []
         for item in orders_data:
             try:
                 customer = Customer.objects.get(id=item.get('customer_id'))
                 product = Product.objects.get(id=item.get('product_id'))
+                requested_quantity = int(item.get('quantity', 0))
+
+                # Check if enough quantity is available
+                if product.quantity < requested_quantity:
+                    errors.append(f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud.")
+                    continue
+
                 order = Order(
                     customer=customer,
                     product=product,
-                    quantity=int(item.get('quantity', 0)),
+                    quantity=requested_quantity,
                     price_per_kg=int(item.get('price_per_kg', 0)),
                 )
                 order.save()
@@ -264,6 +276,10 @@ class OrderView(LoginRequiredMixin, View):
                 customer.save()
             except (Customer.DoesNotExist, Product.DoesNotExist, ValueError, TypeError):
                 continue
+
+        if errors:
+            # Store error messages in session to display after redirect
+            request.session['order_errors'] = errors
 
         return redirect("dashboard")
 
