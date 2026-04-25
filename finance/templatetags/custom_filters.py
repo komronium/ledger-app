@@ -29,3 +29,11 @@ def format_currency(value):
         return '{:,.0f}'.format(value).replace(',', ' ')
     except (ValueError, TypeError):
         return value
+
+
+@register.filter
+def pct(value, total):
+    try:
+        return min(100, round(float(value) / float(total) * 100))
+    except (ValueError, ZeroDivisionError, TypeError):
+        return 0

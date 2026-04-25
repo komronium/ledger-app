@@ -2,144 +2,213 @@
 {% load custom_filters %}
 {% block content %}
 
-<!-- Year Filter -->
-<div class="mb-6 flex items-center justify-between">
-    <h2 class="text-2xl font-bold text-gray-800">{{ selected_year }}-yil Statistikasi</h2>
-    <div class="flex gap-2">
-        <a href="{% url 'stats' %}?year=2024" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {% if selected_year == 2024 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2024</a>
-        <a href="{% url 'stats' %}?year=2025" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {% if selected_year == 2025 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2025</a>
-        <a href="{% url 'stats' %}?year=2026" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {% if selected_year == 2026 %}bg-blue-600 text-white shadow-lg{% else %}bg-white text-gray-600 hover:bg-gray-100 border border-gray-200{% endif %}">2026</a>
+<!-- Header & Year Selector -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Statistika</h2>
+        <p class="text-sm text-gray-400 mt-0.5">{{ selected_year }}-yil hisoboti</p>
+    </div>
+    <div class="flex gap-1.5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+        <a href="{% url 'stats' %}?year=2024"
+            class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all {% if selected_year == 2024 %}bg-blue-600 text-white shadow{% else %}text-gray-500 hover:bg-gray-100{% endif %}">2024</a>
+        <a href="{% url 'stats' %}?year=2025"
+            class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all {% if selected_year == 2025 %}bg-blue-600 text-white shadow{% else %}text-gray-500 hover:bg-gray-100{% endif %}">2025</a>
+        <a href="{% url 'stats' %}?year=2026"
+            class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all {% if selected_year == 2026 %}bg-blue-600 text-white shadow{% else %}text-gray-500 hover:bg-gray-100{% endif %}">2026</a>
     </div>
 </div>
 
-<!-- ========== UMUMIY KO'RINISH ========== -->
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="text-xs text-gray-400 font-medium mb-1">Sotuv (daromad)</div>
-        <div class="text-lg font-black text-gray-800">{{ total_revenue|format_currency }}</div>
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+
+    <!-- Sotuv -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <span class="text-xs font-medium text-gray-400">Sotuv</span>
+        </div>
+        <div class="text-lg font-black text-gray-800 leading-tight">{{ total_revenue|format_currency }}</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">so'm</div>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="text-xs text-gray-400 font-medium mb-1">Xarid (firmalardan)</div>
-        <div class="text-lg font-black text-gray-800">{{ total_purchased|format_currency }}</div>
+
+    <!-- Xarid -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+            </div>
+            <span class="text-xs font-medium text-gray-400">Xarid</span>
+        </div>
+        <div class="text-lg font-black text-gray-800 leading-tight">{{ total_purchased|format_currency }}</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">so'm</div>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="text-xs text-gray-400 font-medium mb-1">Xarajatlar</div>
-        <div class="text-lg font-black text-red-600">{{ total_expenses|format_currency }}</div>
+
+    <!-- Xarajatlar -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+            </div>
+            <span class="text-xs font-medium text-gray-400">Xarajatlar</span>
+        </div>
+        <div class="text-lg font-black text-red-600 leading-tight">{{ total_expenses|format_currency }}</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">so'm</div>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="text-xs text-gray-400 font-medium mb-1">Mijoz qarzlari (bizga)</div>
-        <div class="text-lg font-black text-amber-600">{{ total_debt|format_currency }}</div>
+
+    <!-- Mijoz qarzlari -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <span class="text-xs font-medium text-gray-400">Mijoz qarzi</span>
+        </div>
+        <div class="text-lg font-black text-amber-600 leading-tight">{{ total_debt|format_currency }}</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">so'm</div>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="text-xs text-gray-400 font-medium mb-1">Firma qarzlari (bizda)</div>
-        <div class="text-lg font-black text-red-500">{{ total_supplier_debt|format_currency }}</div>
+
+    <!-- Firma qarzlari -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+            </div>
+            <span class="text-xs font-medium text-gray-400">Firma qarzi</span>
+        </div>
+        <div class="text-lg font-black text-orange-600 leading-tight">{{ total_supplier_debt|format_currency }}</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">so'm</div>
     </div>
-    <div class="rounded-xl border p-4 {% if net_profit >= 0 %}bg-emerald-50 border-emerald-200{% else %}bg-red-50 border-red-200{% endif %}">
-        <div class="text-xs font-medium mb-1 {% if net_profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">Sof foyda</div>
-        <div class="text-lg font-black {% if net_profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">
+
+    <!-- Sof foyda -->
+    <div class="rounded-2xl border p-4 shadow-sm {% if net_profit >= 0 %}bg-emerald-50 border-emerald-200{% else %}bg-red-50 border-red-200{% endif %}">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 {% if net_profit >= 0 %}bg-emerald-200{% else %}bg-red-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 {% if net_profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {% if net_profit >= 0 %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {% endif %}
+                </svg>
+            </div>
+            <span class="text-xs font-medium {% if net_profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">Sof foyda</span>
+        </div>
+        <div class="text-lg font-black leading-tight {% if net_profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">
             {% if net_profit >= 0 %}+{% endif %}{{ net_profit|format_currency }}
         </div>
+        <div class="text-[10px] text-gray-400 mt-0.5">so'm</div>
     </div>
 </div>
 
-<!-- Tushuntirish -->
-<div class="mb-8 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
-    <strong>Sof foyda</strong> = Sotuv − Firmalardan xarid − Xarajatlar
+<!-- Formula -->
+<div class="mb-6 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-600 flex items-center gap-2">
+    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <span><strong>Sof foyda</strong> = Sotuv &minus; Firmalardan xarid &minus; Xarajatlar</span>
 </div>
 
 <!-- ========== FIRMALAR BO'YICHA ========== -->
 {% if supplier_stats %}
 <div>
-    <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-gray-800">Firmalar bo'yicha</h3>
-        <span class="text-xs text-gray-400">{{ supplier_stats|length }} ta firma</span>
+    <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-bold text-gray-800">Firmalar bo'yicha</h3>
+        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">{{ supplier_stats|length }} ta firma</span>
     </div>
 
-    <div class="space-y-3">
+    <div class="space-y-2">
     {% for stat in supplier_stats %}
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <!-- Firma header — bosilganda ochiladi -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <!-- Firma header -->
         <button type="button" onclick="toggleFirma('f{{ forloop.counter }}')"
-                class="w-full px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left">
+                class="w-full px-4 py-3.5 flex items-center justify-between hover:bg-gray-50/80 transition-colors text-left group">
             <div class="flex items-center gap-3 min-w-0">
-                <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
                     {{ stat.supplier.name|slice:":1"|upper }}
-                </span>
+                </div>
                 <div class="min-w-0">
-                    <span class="text-sm font-bold text-gray-800">{{ stat.supplier.name }}</span>
+                    <div class="text-sm font-bold text-gray-800 truncate">{{ stat.supplier.name }}</div>
+                    <!-- Mobile: show key numbers inline -->
+                    <div class="sm:hidden text-xs text-gray-400 mt-0.5">
+                        Sotuv: <span class="font-semibold text-gray-600">{{ stat.sales|format_currency }}</span>
+                        &nbsp;&middot;&nbsp;
+                        Foyda:
+                        <span class="font-semibold {% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
+                            {% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Summary chips -->
-            <div class="flex items-center gap-3 shrink-0 ml-3">
-                <div class="hidden sm:flex items-center gap-3">
-                    <span class="px-2.5 py-1 rounded-lg bg-gray-50 text-xs">
+            <div class="flex items-center gap-2 shrink-0 ml-3">
+                <!-- Desktop chips -->
+                <div class="hidden sm:flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 text-xs">
                         <span class="text-gray-400">Xarid:</span>
-                        <span class="font-bold text-gray-700">{{ stat.purchased|format_currency }}</span>
+                        <span class="font-bold text-gray-700 ml-1">{{ stat.purchased|format_currency }}</span>
                     </span>
-                    <span class="px-2.5 py-1 rounded-lg bg-gray-50 text-xs">
+                    <span class="px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 text-xs">
                         <span class="text-gray-400">Sotuv:</span>
-                        <span class="font-bold text-gray-700">{{ stat.sales|format_currency }}</span>
+                        <span class="font-bold text-gray-700 ml-1">{{ stat.sales|format_currency }}</span>
                     </span>
-                    <span class="px-2.5 py-1 rounded-lg text-xs {% if stat.debt > 0 %}bg-red-50 text-red-600{% else %}bg-emerald-50 text-emerald-600{% endif %}">
+                    <span class="px-2.5 py-1 rounded-lg border text-xs {% if stat.debt > 0 %}bg-red-50 border-red-100 text-red-600{% else %}bg-emerald-50 border-emerald-100 text-emerald-600{% endif %}">
                         <span class="opacity-70">Qarz:</span>
-                        <span class="font-bold">{{ stat.debt|format_currency }}</span>
+                        <span class="font-bold ml-1">{{ stat.debt|format_currency }}</span>
                     </span>
-                    <span class="px-2.5 py-1 rounded-lg text-xs {% if stat.profit >= 0 %}bg-emerald-50 text-emerald-700{% else %}bg-red-50 text-red-600{% endif %}">
+                    <span class="px-2.5 py-1 rounded-lg border text-xs {% if stat.profit >= 0 %}bg-emerald-50 border-emerald-100 text-emerald-700{% else %}bg-red-50 border-red-100 text-red-600{% endif %}">
                         <span class="opacity-70">Foyda:</span>
-                        <span class="font-bold">{% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}</span>
+                        <span class="font-bold ml-1">{% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}</span>
                     </span>
                 </div>
-                <svg id="arrow-f{{ forloop.counter }}" class="w-4 h-4 text-gray-400 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg id="arrow-f{{ forloop.counter }}"
+                    class="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-all duration-200 shrink-0"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
         </button>
 
-        <!-- Expanded content -->
+        <!-- Expanded -->
         <div id="f{{ forloop.counter }}" class="hidden border-t border-gray-100">
 
-            <!-- Mobile summary -->
-            <div class="sm:hidden grid grid-cols-2 gap-2 p-3 bg-gray-50 border-b border-gray-100">
-                <div class="bg-white rounded-lg p-2 text-center">
-                    <div class="text-[10px] text-gray-400">Xarid</div>
-                    <div class="text-xs font-bold text-gray-700">{{ stat.purchased|format_currency }}</div>
-                </div>
-                <div class="bg-white rounded-lg p-2 text-center">
-                    <div class="text-[10px] text-gray-400">Sotuv</div>
-                    <div class="text-xs font-bold text-gray-700">{{ stat.sales|format_currency }}</div>
-                </div>
-                <div class="bg-white rounded-lg p-2 text-center">
-                    <div class="text-[10px] text-gray-400">Qarz</div>
-                    <div class="text-xs font-bold {% if stat.debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ stat.debt|format_currency }}</div>
-                </div>
-                <div class="bg-white rounded-lg p-2 text-center">
-                    <div class="text-[10px] text-gray-400">Foyda</div>
-                    <div class="text-xs font-bold {% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">{{ stat.profit|format_currency }}</div>
-                </div>
-            </div>
-
             <!-- Summary row -->
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-gray-50/50 border-b border-gray-100">
-                <div>
-                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Xarid qilindi</div>
-                    <div class="text-sm font-bold text-gray-800">{{ stat.purchased|format_currency }} so'm</div>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-0 border-b border-gray-100">
+                <div class="p-4 border-r border-gray-100">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Xarid qilindi</div>
+                    <div class="text-sm font-bold text-gray-800">{{ stat.purchased|format_currency }}</div>
+                    <div class="text-[10px] text-gray-400">so'm</div>
                 </div>
-                <div>
-                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Firmaga to'landi</div>
-                    <div class="text-sm font-bold text-emerald-600">{{ stat.paid|format_currency }} so'm</div>
+                <div class="p-4 sm:border-r border-gray-100">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">To'landi</div>
+                    <div class="text-sm font-bold text-emerald-600">{{ stat.paid|format_currency }}</div>
+                    <div class="text-[10px] text-gray-400">so'm</div>
                 </div>
-                <div>
-                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Qarz (jami)</div>
-                    <div class="text-sm font-bold {% if stat.debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ stat.debt|format_currency }} so'm</div>
+                <div class="p-4 border-r border-t sm:border-t-0 border-gray-100">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Qarz</div>
+                    <div class="text-sm font-bold {% if stat.debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ stat.debt|format_currency }}</div>
+                    <div class="text-[10px] text-gray-400">so'm</div>
                 </div>
-                <div>
-                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Sotildi</div>
-                    <div class="text-sm font-bold text-blue-600">{{ stat.sales|format_currency }} so'm</div>
+                <div class="p-4 border-t sm:border-t-0 sm:border-r border-gray-100">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">Sotildi</div>
+                    <div class="text-sm font-bold text-blue-600">{{ stat.sales|format_currency }}</div>
+                    <div class="text-[10px] text-gray-400">so'm</div>
                 </div>
-                <div>
-                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Foyda (Sotuv−Xarid)</div>
-                    <div class="text-sm font-bold {% if stat.profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }} so'm</div>
+                <div class="col-span-2 sm:col-span-1 p-4 border-t sm:border-t-0 {% if stat.profit >= 0 %}bg-emerald-50{% else %}bg-red-50{% endif %}">
+                    <div class="text-[10px] {% if stat.profit >= 0 %}text-emerald-500{% else %}text-red-400{% endif %} uppercase tracking-wider font-medium mb-1">Foyda</div>
+                    <div class="text-sm font-bold {% if stat.profit >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}</div>
+                    <div class="text-[10px] text-gray-400">so'm</div>
                 </div>
             </div>
 
@@ -147,23 +216,23 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-xs">
                     <thead>
-                        <tr class="bg-gray-50 border-b border-gray-200">
-                            <th class="px-4 py-2 text-left font-semibold text-gray-500">Oy</th>
-                            <th class="px-4 py-2 text-right font-semibold text-gray-500">Xarid</th>
-                            <th class="px-4 py-2 text-right font-semibold text-gray-500">To'lov</th>
-                            <th class="px-4 py-2 text-right font-semibold text-gray-500">Sotuv</th>
-                            <th class="px-4 py-2 text-right font-semibold text-gray-500">Foyda</th>
+                        <tr class="bg-gray-50 border-b border-gray-100">
+                            <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Oy</th>
+                            <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Xarid</th>
+                            <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-wider text-[10px]">To'lov</th>
+                            <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Sotuv</th>
+                            <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Foyda</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         {% for m in stat.monthly %}
                         {% if m.sales > 0 or m.purchased > 0 or m.paid > 0 %}
-                        <tr class="hover:bg-gray-50/50 transition-colors">
-                            <td class="px-4 py-2 font-medium text-gray-700">{{ m.month }}</td>
-                            <td class="px-4 py-2 text-right text-gray-600">{{ m.purchased|format_currency }}</td>
-                            <td class="px-4 py-2 text-right text-emerald-600 font-medium">{{ m.paid|format_currency }}</td>
-                            <td class="px-4 py-2 text-right text-gray-700 font-semibold">{{ m.sales|format_currency }}</td>
-                            <td class="px-4 py-2 text-right font-bold {% if m.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
+                        <tr class="hover:bg-gray-50/60 transition-colors">
+                            <td class="px-4 py-2.5 font-semibold text-gray-600">{{ m.month }}</td>
+                            <td class="px-4 py-2.5 text-right text-gray-500">{{ m.purchased|format_currency }}</td>
+                            <td class="px-4 py-2.5 text-right text-emerald-600 font-medium">{{ m.paid|format_currency }}</td>
+                            <td class="px-4 py-2.5 text-right text-gray-700 font-semibold">{{ m.sales|format_currency }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold {% if m.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
                                 {% if m.profit >= 0 %}+{% endif %}{{ m.profit|format_currency }}
                             </td>
                         </tr>
@@ -173,10 +242,14 @@
                 </table>
             </div>
 
-            <!-- Link to detail -->
-            <div class="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                <a href="{% url 'supplier_detail' stat.supplier.pk %}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-                    To'liq tarix va boshqarish →
+            <!-- Footer link -->
+            <div class="px-4 py-3 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between">
+                <a href="{% url 'supplier_detail' stat.supplier.pk %}"
+                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors group/link">
+                    To'liq tarix va boshqarish
+                    <svg class="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
                 </a>
             </div>
         </div>
@@ -185,8 +258,14 @@
     </div>
 </div>
 {% else %}
-<div class="mt-6 text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-    <p class="text-gray-400 text-sm">Hali firmalar bo'yicha ma'lumot yo'q</p>
+<div class="mt-4 text-center py-14 bg-white rounded-2xl border border-dashed border-gray-200">
+    <div class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <svg class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+    </div>
+    <p class="text-gray-500 font-semibold">Ma'lumot yo'q</p>
+    <p class="text-sm text-gray-400 mt-1">{{ selected_year }}-yil uchun firmalar bo'yicha yozuv topilmadi</p>
 </div>
 {% endif %}
 
@@ -194,9 +273,9 @@
 function toggleFirma(id) {
     const el = document.getElementById(id);
     const arrow = document.getElementById('arrow-' + id);
-    const hidden = el.classList.contains('hidden');
-    el.classList.toggle('hidden', !hidden);
-    arrow.style.transform = hidden ? 'rotate(180deg)' : '';
+    const isHidden = el.classList.contains('hidden');
+    el.classList.toggle('hidden', !isHidden);
+    arrow.style.transform = isHidden ? 'rotate(180deg)' : '';
 }
 </script>
 
