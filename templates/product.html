@@ -32,6 +32,28 @@
                 class="w-full gradient-bg text-white py-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all">+
                 Mahsulot Qo'shish</button>
         </div>
+        <!-- Aksiya qatori -->
+        <div class="md:col-span-4">
+            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2 cursor-pointer select-none">
+                <input type="checkbox" id="addPromoCheck" onchange="toggleAddPromo(this)"
+                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                Aksiya qo'shish
+            </label>
+            <div id="addPromoFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Nechta sotib olsa (masalan 10)</label>
+                    <input type="number" name="promo_buy" id="addPromoBuy" min="1"
+                        class="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-400 bg-white text-sm transition-all"
+                        placeholder="10">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Nechta bepul (masalan 1)</label>
+                    <input type="number" name="promo_free" id="addPromoFree" min="1"
+                        class="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-400 bg-white text-sm transition-all"
+                        placeholder="1">
+                </div>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -53,6 +75,7 @@
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Narxi</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Mavjud</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Firma</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Aksiya</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Sotilgan (oy)</th>
                     <th class="px-4 py-3"></th>
                 </tr>
@@ -67,11 +90,20 @@
                             class="{% if product.quantity <= 0 %}text-red-600 font-semibold{% else %}text-gray-700{% endif %}">{{ product.quantity }}</span>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ product.supplier.name|default:"—" }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if product.promo_buy and product.promo_free %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold">
+                            {{ product.promo_buy }}+{{ product.promo_free }}
+                        </span>
+                        {% else %}
+                        <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-sm font-medium text-gray-700">{{ product.total_quantity|default:0|format_currency }}</td>
                     <td class="px-4 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <button type="button"
-                                onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.price }}, '{{ product.supplier_id|default:'' }}')"
+                                onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.price }}, '{{ product.supplier_id|default:'' }}', {{ product.promo_buy|default:'null' }}, {{ product.promo_free|default:'null' }})"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm font-medium transition-all">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -96,13 +128,13 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-sm text-gray-400 text-center">Hozircha mahsulotlar yo'q</td>
+                    <td colspan="7" class="px-4 py-8 text-sm text-gray-400 text-center">Hozircha mahsulotlar yo'q</td>
                 </tr>
                 {% endfor %}
             </tbody>
             <tfoot class="bg-green-50">
                 <tr>
-                    <td colspan="4" class="px-4 py-4 text-sm font-bold text-gray-800">Jami:</td>
+                    <td colspan="5" class="px-4 py-4 text-sm font-bold text-gray-800">Jami:</td>
                     <td class="px-4 py-4 text-sm font-semibold text-green-700">{{ total_quantity|format_currency }}</td>
                     <td></td>
                 </tr>
@@ -147,6 +179,27 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div>
+                    <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2 cursor-pointer select-none">
+                        <input type="checkbox" id="editPromoCheck" onchange="toggleEditPromo(this)"
+                            class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        Aksiya
+                    </label>
+                    <div id="editPromoFields" class="hidden grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Nechta sotib olsa</label>
+                            <input type="number" name="promo_buy" id="editPromoBuy" min="1"
+                                class="w-full p-2.5 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-400 text-sm transition-all"
+                                placeholder="10">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Nechta bepul</label>
+                            <input type="number" name="promo_free" id="editPromoFree" min="1"
+                                class="w-full p-2.5 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-400 text-sm transition-all"
+                                placeholder="1">
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="px-6 pb-5 flex gap-3 justify-end">
                 <button type="button" onclick="closeEditModal()"
@@ -159,13 +212,52 @@
 </div>
 
 <script>
-    function openEditModal(id, name, price, supplierId) {
+    function toggleAddPromo(cb) {
+        const fields = document.getElementById('addPromoFields');
+        const buyInput = document.getElementById('addPromoBuy');
+        const freeInput = document.getElementById('addPromoFree');
+        if (cb.checked) {
+            fields.classList.remove('hidden');
+        } else {
+            fields.classList.add('hidden');
+            buyInput.value = '';
+            freeInput.value = '';
+        }
+    }
+
+    function toggleEditPromo(cb) {
+        const fields = document.getElementById('editPromoFields');
+        const buyInput = document.getElementById('editPromoBuy');
+        const freeInput = document.getElementById('editPromoFree');
+        if (cb.checked) {
+            fields.classList.remove('hidden');
+        } else {
+            fields.classList.add('hidden');
+            buyInput.value = '';
+            freeInput.value = '';
+        }
+    }
+
+    function openEditModal(id, name, price, supplierId, promoBuy, promoFree) {
         document.getElementById('editProductForm').action = '/product/edit/' + id + '/';
         document.getElementById('editName').value = name;
         document.getElementById('editPrice').value = price;
         const sel = document.getElementById('editSupplier');
         for (let i = 0; i < sel.options.length; i++) {
             sel.options[i].selected = (sel.options[i].value == supplierId);
+        }
+        const hasPromo = promoBuy && promoFree;
+        const promoCheck = document.getElementById('editPromoCheck');
+        promoCheck.checked = !!hasPromo;
+        const promoFields = document.getElementById('editPromoFields');
+        if (hasPromo) {
+            promoFields.classList.remove('hidden');
+            document.getElementById('editPromoBuy').value = promoBuy;
+            document.getElementById('editPromoFree').value = promoFree;
+        } else {
+            promoFields.classList.add('hidden');
+            document.getElementById('editPromoBuy').value = '';
+            document.getElementById('editPromoFree').value = '';
         }
         document.getElementById('editProductModal').classList.remove('hidden');
     }

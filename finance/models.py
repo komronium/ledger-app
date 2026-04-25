@@ -71,6 +71,8 @@ class Product(models.Model):
         Supplier, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='products', verbose_name="Firma"
     )
+    promo_buy = models.IntegerField(null=True, blank=True, verbose_name="Aksiya: nechta sotib olsa")
+    promo_free = models.IntegerField(null=True, blank=True, verbose_name="Aksiya: nechta bepul")
 
     class Meta:
         db_table = 'products'
@@ -98,18 +100,18 @@ class Order(models.Model):
         verbose_name_plural = 'Orders'
 
     def save(self, *args, **kwargs):
-        # Calculate totals
         self.total_price = self.quantity * self.price_per_kg
-        # Only set remaining_debt on creation, not on updates
         if self.pk is None:
             self.remaining_debt = self.total_price
 
         if self.pk is None and self.product:
-            self.product.quantity -= self.quantity
+            free_count = 0
+            if self.product.promo_buy and self.product.promo_free and self.product.promo_buy > 0:
+                free_count = (self.quantity // self.product.promo_buy) * self.product.promo_free
+            self.product.quantity -= (self.quantity + free_count)
             self.product.save()
-            
+
         super().save(*args, **kwargs)
-        # Subtract quantity from product stock for new orders
         
 
     def __str__(self):

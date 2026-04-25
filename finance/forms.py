@@ -152,7 +152,19 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ['name', 'price', 'supplier']
+        fields = ['name', 'price', 'supplier', 'promo_buy', 'promo_free']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        promo_buy = cleaned_data.get('promo_buy')
+        promo_free = cleaned_data.get('promo_free')
+        if (promo_buy is None) != (promo_free is None):
+            raise forms.ValidationError("Aksiya: ikkala maydonni ham to'ldiring yoki ikkalasini ham bo'sh qoldiring.")
+        if promo_buy is not None and promo_buy <= 0:
+            raise forms.ValidationError("Aksiya: sotib olinadigan miqdor 0 dan katta bo'lishi kerak.")
+        if promo_free is not None and promo_free <= 0:
+            raise forms.ValidationError("Aksiya: bepul miqdor 0 dan katta bo'lishi kerak.")
+        return cleaned_data
 
     def save(self, commit=True):
         product = super().save(commit=False)

@@ -222,7 +222,7 @@ class OrderView(LoginRequiredMixin, View):
             total_paid_amount = 0
             total_debt = totals["total_debt"]
 
-        products_list = list(Product.objects.values('id', 'name', 'price', 'quantity'))
+        products_list = list(Product.objects.values('id', 'name', 'price', 'quantity', 'promo_buy', 'promo_free'))
         import json as _json
         products_json = _json.dumps(products_list)
 
@@ -260,9 +260,16 @@ class OrderView(LoginRequiredMixin, View):
                 product = Product.objects.get(id=item.get('product_id'))
                 requested_quantity = int(item.get('quantity', 0))
 
-                # Check if enough quantity is available
-                if product.quantity < requested_quantity:
-                    errors.append(f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud.")
+                # Check if enough quantity is available (including promo free items)
+                free_count = 0
+                if product.promo_buy and product.promo_free and product.promo_buy > 0:
+                    free_count = (requested_quantity // product.promo_buy) * product.promo_free
+                total_to_deduct = requested_quantity + free_count
+                if product.quantity < total_to_deduct:
+                    if free_count:
+                        errors.append(f"{product.name}: {requested_quantity} so'raldi + {free_count} aksiya = {total_to_deduct} kerak, lekin {product.quantity} mavjud.")
+                    else:
+                        errors.append(f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud.")
                     continue
 
                 order = Order(

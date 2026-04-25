@@ -43,12 +43,15 @@
                         <option value="">Tanlang</option>
                         {% for product in products %}
                         <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}"
-                            data-quantity="{{ product.quantity }}">{{ product.name }} ({{ product.quantity }})
+                            data-quantity="{{ product.quantity }}"
+                            data-promo-buy="{{ product.promo_buy|default:'' }}"
+                            data-promo-free="{{ product.promo_free|default:'' }}">{{ product.name }} ({{ product.quantity }})
                         </option>
                         {% endfor %}
                     </select>
                     <div id="quantityWarning" class="hidden text-xs text-red-500 mt-1">Mavjud: <span
                             id="availableQty">0</span></div>
+                    <div id="promoInfo" class="hidden text-xs text-orange-600 font-semibold mt-1"></div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">Miqdori</label>
@@ -357,6 +360,46 @@
         } else {
             warningDiv.classList.add('hidden');
         }
+        // Show promo info
+        const promoBuy = selected ? selected.dataset.promoBuy : '';
+        const promoFree = selected ? selected.dataset.promoFree : '';
+        const promoDiv = document.getElementById('promoInfo');
+        if (promoBuy && promoFree) {
+            promoDiv.textContent = '🎁 Aksiya: ' + promoBuy + ' ta olsang ' + promoFree + ' ta bepul (ombordan ' + (parseInt(promoBuy) + parseInt(promoFree)) + ' ta chiqadi)';
+            promoDiv.classList.remove('hidden');
+        } else {
+            promoDiv.classList.add('hidden');
+        }
+        updatePromoPreview();
+    }
+
+    function getPromoFreeCount(quantity, promoBuy, promoFree) {
+        if (!promoBuy || !promoFree || parseInt(promoBuy) <= 0) return 0;
+        return Math.floor(quantity / parseInt(promoBuy)) * parseInt(promoFree);
+    }
+
+    function updatePromoPreview() {
+        const productSelect = document.getElementById('productSelect');
+        const selected = productSelect.options[productSelect.selectedIndex];
+        const promoBuy = selected ? selected.dataset.promoBuy : '';
+        const promoFree = selected ? selected.dataset.promoFree : '';
+        const quantity = parseInt(document.getElementById('quantity').value) || 0;
+        const promoDiv = document.getElementById('promoInfo');
+        if (promoBuy && promoFree && quantity > 0) {
+            const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
+            const totalDeduct = quantity + freeCount;
+            if (freeCount > 0) {
+                promoDiv.textContent = '🎁 Aksiya: ' + quantity + ' ta narxi + ' + freeCount + ' ta bepul = ombordan ' + totalDeduct + ' ta chiqadi';
+            } else {
+                promoDiv.textContent = '🎁 Aksiya: ' + promoBuy + ' ta olsang ' + promoFree + ' ta bepul';
+            }
+            promoDiv.classList.remove('hidden');
+        } else if (promoBuy && promoFree) {
+            promoDiv.textContent = '🎁 Aksiya: ' + promoBuy + ' ta olsang ' + promoFree + ' ta bepul';
+            promoDiv.classList.remove('hidden');
+        } else {
+            promoDiv.classList.add('hidden');
+        }
     }
 
     function calculateTotal() {
@@ -364,6 +407,7 @@
         const price = parseFloat(document.getElementById('price').value) || 0;
         const total = quantity * price;
         document.getElementById('grandTotal').value = total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        updatePromoPreview();
     }
 
     function validateQuantity() {
@@ -371,13 +415,21 @@
         const selected = productSelect.options[productSelect.selectedIndex];
         const availableQty = parseInt(selected?.dataset?.quantity || 0);
         const requestedQty = parseInt(document.getElementById('quantity').value) || 0;
+        const promoBuy = selected?.dataset?.promoBuy || '';
+        const promoFree = selected?.dataset?.promoFree || '';
         const warningDiv = document.getElementById('quantityWarning');
-        const availableSpan = document.getElementById('availableQty');
 
-        if (requestedQty > availableQty) {
+        const freeCount = getPromoFreeCount(requestedQty, promoBuy, promoFree);
+        const totalToDeduct = requestedQty + freeCount;
+
+        if (totalToDeduct > availableQty) {
             warningDiv.classList.remove('hidden');
             warningDiv.classList.add('text-red-600', 'font-semibold');
-            warningDiv.innerHTML = 'Diqqat! Mavjud: <span id="availableQty">' + availableQty + '</span>. Ortiqcha: ' + (requestedQty - availableQty) ;
+            if (freeCount > 0) {
+                warningDiv.innerHTML = 'Diqqat! ' + requestedQty + '+' + freeCount + '=' + totalToDeduct + ' kerak, mavjud: ' + availableQty;
+            } else {
+                warningDiv.innerHTML = 'Diqqat! Mavjud: <span>' + availableQty + '</span>. Ortiqcha: ' + (requestedQty - availableQty);
+            }
             return false;
         } else if (availableQty > 0) {
             warningDiv.classList.remove('hidden', 'text-red-600', 'font-semibold');
@@ -404,9 +456,17 @@
             return;
         }
 
-        // Validate quantity
-        if (quantity > availableQty) {
-            alert(productName + ' uchun ' + quantity + ' so\'raldi, lekin ' + availableQty + ' mavjud!');
+        // Validate quantity (aksiya bepul mahsulotlarni ham hisobga olgan holda)
+        const promoBuy = productSelect.options[productSelect.selectedIndex]?.dataset?.promoBuy || '';
+        const promoFree = productSelect.options[productSelect.selectedIndex]?.dataset?.promoFree || '';
+        const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
+        const totalToDeduct = quantity + freeCount;
+        if (totalToDeduct > availableQty) {
+            if (freeCount > 0) {
+                alert(productName + ': ' + quantity + ' ta + ' + freeCount + ' ta bepul = ' + totalToDeduct + ' ta kerak, lekin ' + availableQty + ' ta mavjud!');
+            } else {
+                alert(productName + ' uchun ' + quantity + ' so\'raldi, lekin ' + availableQty + ' mavjud!');
+            }
             return;
         }
 
