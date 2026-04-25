@@ -76,7 +76,7 @@
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Mavjud</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Firma</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Aksiya</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Sotilgan (oy)</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Sklad (oy)</th>
                     <th class="px-4 py-3"></th>
                 </tr>
             </thead>
@@ -99,7 +99,12 @@
                         <span class="text-gray-400">—</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm font-medium text-gray-700">{{ product.total_quantity|default:0|format_currency }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="font-medium text-gray-700">{{ product.total_deducted|default:0|format_currency }}</span>
+                        {% if product.total_free > 0 %}
+                        <div class="text-[10px] text-orange-500 font-semibold leading-tight mt-0.5">+{{ product.total_free }} bepul</div>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <button type="button"

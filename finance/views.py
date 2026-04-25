@@ -490,16 +490,40 @@ class ProductView(AdminOnlyMixin, View):
 
         year, month = self.parse_month(selected_month)
 
-        products = Product.objects.annotate(
+        products = list(Product.objects.annotate(
             total_quantity=self.get_month_annotation(year, month)
-        )
+        ))
+
+        # Per-order deduction including promo free items
+        month_orders = Order.objects.filter(
+            order_date__year=year,
+            order_date__month=month
+        ).select_related('product')
+
+        deducted_map = {}
+        free_map = {}
+        for o in month_orders:
+            if not o.product_id:
+                continue
+            p = o.product
+            free = 0
+            if p.promo_buy and p.promo_free and p.promo_buy > 0:
+                free = (o.quantity // p.promo_buy) * p.promo_free
+            pid = o.product_id
+            deducted_map[pid] = deducted_map.get(pid, 0) + o.quantity + free
+            if free > 0:
+                free_map[pid] = free_map.get(pid, 0) + free
+
+        total_deducted = 0
+        for product in products:
+            product.total_deducted = deducted_map.get(product.id, 0)
+            product.total_free = free_map.get(product.id, 0)
+            total_deducted += product.total_deducted
 
         context = {
             "products": products,
             "suppliers": Supplier.objects.all(),
-            "total_quantity": sum(
-                product.total_quantity or 0 for product in products
-            ),
+            "total_quantity": total_deducted,
             "page": "product",
             "selected_month": selected_month,
         }
@@ -654,6 +678,9 @@ class StatisticsView(AdminOnlyMixin, View):
             "total_expenses": total_expenses,
             "net_profit": total_revenue - total_purchased_all - total_expenses,
             "selected_year": selected_year,
+            "monthly_data": monthly_data,
+            "top_products": [p for p in top_products if p.sold_quantity][:5],
+            "top_debtors": top_debtors,
             "page": "stats",
         }
 
