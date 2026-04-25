@@ -73,7 +73,7 @@
 </div>
 
 <!-- Add Client Modal -->
-<div id="addClientModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+<div id="addClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl mx-4">
         <div class="flex items-center justify-between mb-5">
             <h2 class="text-lg font-bold text-gray-800">Yangi Mijoz Qo'shish</h2>
@@ -110,7 +110,7 @@
 </div>
 
 <!-- Edit Client Modal -->
-<div id="editClientModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+<div id="editClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl mx-4">
         <div class="flex items-center justify-between mb-5">
             <h2 class="text-lg font-bold text-gray-800">Mijozni Tahrirlash</h2>
@@ -251,7 +251,7 @@ function searchFilterClients() {
             // Add "Barcha mijozlar" option
             const allOption = document.createElement('div');
             allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
-            allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
+            allOption.innerHTML = '<div>— Barcha mijozlar</div>';
             allOption.onclick = () => selectFilterClient(null);
             dropdown.appendChild(allOption);
             
@@ -296,7 +296,7 @@ function searchFilterClients() {
                 // Add "Barcha mijozlar" option
                 const allOption = document.createElement('div');
                 allOption.className = 'p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600';
-                allOption.innerHTML = '<div>📋 Barcha mijozlar</div>';
+                allOption.innerHTML = '<div>— Barcha mijozlar</div>';
                 allOption.onclick = () => selectFilterClient(null);
                 dropdown.appendChild(allOption);
                 

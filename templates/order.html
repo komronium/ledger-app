@@ -35,7 +35,7 @@
                     </div>
                     <input type="hidden" id="selectedClientId" value="">
                 </div>
-                <div>
+                <div class="relative">
                     <label class="block text-xs font-medium text-gray-500 mb-1">Mahsulot</label>
                     <select id="productSelect"
                         class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
@@ -49,9 +49,11 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <div id="quantityWarning" class="hidden text-xs text-red-500 mt-1">Mavjud: <span
-                            id="availableQty">0</span></div>
-                    <div id="promoInfo" class="hidden text-xs text-orange-600 font-semibold mt-1"></div>
+                    <!-- Floating tooltip — won't shift the grid -->
+                    <div id="productTooltip" class="hidden absolute left-0 top-full mt-1 z-20 flex flex-col gap-0.5 pointer-events-none">
+                        <div id="quantityWarning" class="hidden text-xs bg-white border border-gray-200 shadow-sm rounded-md px-2.5 py-1 text-gray-500 whitespace-nowrap"></div>
+                        <div id="promoInfo" class="hidden text-xs bg-orange-50 border border-orange-200 shadow-sm rounded-md px-2.5 py-1 text-orange-700 font-semibold whitespace-nowrap"></div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">Miqdori</label>
@@ -268,21 +270,22 @@
                 </thead>
                 <tbody id="ordersTable" class="divide-y divide-gray-300 font-medium">
                     {% for order in orders %}
-                    <tr {% if order.type == 'order' %}onclick="window.location.href = `{% url 'order_edit' order.id %}`"
+                    <tr {% if order.type == 'order' %}onclick="window.location.href = '{% url 'order_edit' order.id %}'"
                         {% endif %}
                         class="hover:bg-gray-100 cursor-pointer {% if order.type == 'payment' %}bg-green-50 hover:bg-green-100{% endif %}">
-                        <td class="px-4 py-3 text-gray-700 whitespace-nowrap" style="font-size: 0.8rem">
-                            {{ order.order_date|date:"d-m" }}<br>{{ order.order_date|date:"Y" }}
+                        <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                            {{ order.order_date|date:"d.m.Y" }}
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-900">
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">
                             {{ order.customer.name }}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-900">
                             {% if order.type == 'order' and order.product %}
-                            <div class="flex items-center space-x-2">
-                                <span class="text-gray-700">{{ order.product.name }}</span>
-                                <div class="w-4 h-4 rounded-full border-2 border-gray-300"
-                                    style="background-color: {{ order.product.color }}"></div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-gray-800">{{ order.product.name }}</span>
+                                {% if order.product.promo_buy and order.product.promo_free %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold leading-none">{{ order.product.promo_buy }}+{{ order.product.promo_free }}</span>
+                                {% endif %}
                             </div>
                             {% elif order.type == 'payment' %}
                             <span class="text-green-600 font-semibold">To'lov</span>
@@ -316,6 +319,12 @@
                             </td>
                             {% endif %}
                     </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400">
+                            Hozircha buyurtmalar yo'q
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
                 <tfoot class="bg-gradient-to-r from-blue-100 to-indigo-100">
@@ -343,33 +352,39 @@
 <script>
     let pendingOrders = [];
 
+    function syncTooltipVisibility() {
+        const warn = document.getElementById('quantityWarning');
+        const promo = document.getElementById('promoInfo');
+        const tooltip = document.getElementById('productTooltip');
+        const anyVisible = !warn.classList.contains('hidden') || !promo.classList.contains('hidden');
+        tooltip.classList.toggle('hidden', !anyVisible);
+    }
+
     function autoFillPrice(select) {
         const selected = select.options[select.selectedIndex];
         const price = selected ? selected.dataset.price : '';
-        const quantity = selected ? selected.dataset.quantity : '0';
+        const qty = selected ? selected.dataset.quantity : '0';
         if (price) {
             document.getElementById('price').value = price;
             calculateTotal();
         }
-        // Show available quantity
         const warningDiv = document.getElementById('quantityWarning');
-        const availableSpan = document.getElementById('availableQty');
-        if (quantity && parseInt(quantity) > 0) {
-            availableSpan.textContent = quantity;
+        if (qty && parseInt(qty) > 0) {
+            warningDiv.textContent = 'Mavjud: ' + parseInt(qty).toLocaleString();
             warningDiv.classList.remove('hidden');
         } else {
             warningDiv.classList.add('hidden');
         }
-        // Show promo info
         const promoBuy = selected ? selected.dataset.promoBuy : '';
         const promoFree = selected ? selected.dataset.promoFree : '';
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
-            promoDiv.textContent = '🎁 Aksiya: ' + promoBuy + ' ta olsang ' + promoFree + ' ta bepul (ombordan ' + (parseInt(promoBuy) + parseInt(promoFree)) + ' ta chiqadi)';
+            promoDiv.textContent = 'Aksiya: ' + promoBuy + '+' + promoFree + ' (har ' + promoBuy + ' tadan ' + promoFree + ' ta bepul)';
             promoDiv.classList.remove('hidden');
         } else {
             promoDiv.classList.add('hidden');
         }
+        syncTooltipVisibility();
         updatePromoPreview();
     }
 
@@ -385,21 +400,22 @@
         const promoFree = selected ? selected.dataset.promoFree : '';
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const promoDiv = document.getElementById('promoInfo');
-        if (promoBuy && promoFree && quantity > 0) {
-            const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
-            const totalDeduct = quantity + freeCount;
-            if (freeCount > 0) {
-                promoDiv.textContent = '🎁 Aksiya: ' + quantity + ' ta narxi + ' + freeCount + ' ta bepul = ombordan ' + totalDeduct + ' ta chiqadi';
+        if (promoBuy && promoFree) {
+            if (quantity > 0) {
+                const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
+                if (freeCount > 0) {
+                    promoDiv.textContent = 'Aksiya: ' + quantity + ' + ' + freeCount + ' bepul = ombordan ' + (quantity + freeCount) + ' ta';
+                } else {
+                    promoDiv.textContent = 'Aksiya: ' + promoBuy + '+' + promoFree + ' (har ' + promoBuy + ' tadan ' + promoFree + ' ta bepul)';
+                }
             } else {
-                promoDiv.textContent = '🎁 Aksiya: ' + promoBuy + ' ta olsang ' + promoFree + ' ta bepul';
+                promoDiv.textContent = 'Aksiya: ' + promoBuy + '+' + promoFree + ' (har ' + promoBuy + ' tadan ' + promoFree + ' ta bepul)';
             }
-            promoDiv.classList.remove('hidden');
-        } else if (promoBuy && promoFree) {
-            promoDiv.textContent = '🎁 Aksiya: ' + promoBuy + ' ta olsang ' + promoFree + ' ta bepul';
             promoDiv.classList.remove('hidden');
         } else {
             promoDiv.classList.add('hidden');
         }
+        syncTooltipVisibility();
     }
 
     function calculateTotal() {
@@ -424,17 +440,19 @@
 
         if (totalToDeduct > availableQty) {
             warningDiv.classList.remove('hidden');
-            warningDiv.classList.add('text-red-600', 'font-semibold');
             if (freeCount > 0) {
-                warningDiv.innerHTML = 'Diqqat! ' + requestedQty + '+' + freeCount + '=' + totalToDeduct + ' kerak, mavjud: ' + availableQty;
+                warningDiv.textContent = 'Yetarli emas: ' + requestedQty + '+' + freeCount + '=' + totalToDeduct + ', mavjud: ' + availableQty;
             } else {
-                warningDiv.innerHTML = 'Diqqat! Mavjud: <span>' + availableQty + '</span>. Ortiqcha: ' + (requestedQty - availableQty);
+                warningDiv.textContent = 'Yetarli emas! Mavjud: ' + availableQty;
             }
+            warningDiv.className = 'text-xs bg-red-50 border border-red-200 shadow-sm rounded-md px-2.5 py-1 text-red-600 font-semibold whitespace-nowrap';
+            syncTooltipVisibility();
             return false;
         } else if (availableQty > 0) {
-            warningDiv.classList.remove('hidden', 'text-red-600', 'font-semibold');
-            warningDiv.classList.add('text-gray-500');
-            warningDiv.innerHTML = 'Mavjud: <span id="availableQty">' + availableQty + '</span>';
+            warningDiv.textContent = 'Mavjud: ' + availableQty.toLocaleString();
+            warningDiv.className = 'text-xs bg-white border border-gray-200 shadow-sm rounded-md px-2.5 py-1 text-gray-500 whitespace-nowrap';
+            warningDiv.classList.remove('hidden');
+            syncTooltipVisibility();
             return true;
         }
         calculateTotal();
