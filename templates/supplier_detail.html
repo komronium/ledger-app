@@ -7,11 +7,12 @@
     <a href="{% url 'supplier' %}"
         class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-gray-800 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
     </a>
     <div class="flex items-center gap-3 min-w-0">
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
+        <div
+            class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
             <span class="text-white font-bold text-base">{{ supplier.name|slice:":1"|upper }}</span>
         </div>
         <div class="min-w-0">
@@ -33,7 +34,8 @@
         <div class="flex items-center gap-2 mb-2">
             <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
             </div>
             <span class="text-xs text-gray-400 font-medium">Jami xarid</span>
@@ -46,7 +48,8 @@
         <div class="flex items-center gap-2 mb-2">
             <div class="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
             <span class="text-xs text-gray-400 font-medium">Jami to'lov</span>
@@ -55,16 +58,21 @@
         <div class="text-[10px] text-gray-400">so'm</div>
         {% if total_purchased > 0 %}
         <div class="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full bg-emerald-400 rounded-full transition-all" style="width: {{ total_paid|pct:total_purchased }}%"></div>
+            <div class="h-full bg-emerald-400 rounded-full transition-all"
+                style="width: {{ total_paid|pct:total_purchased }}%"></div>
         </div>
         {% endif %}
     </div>
 
-    <div class="rounded-2xl border p-4 shadow-sm {% if debt > 0 %}bg-red-50 border-red-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+    <div
+        class="rounded-2xl border p-4 shadow-sm {% if debt > 0 %}bg-red-50 border-red-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
         <div class="flex items-center gap-2 mb-2">
-            <div class="w-7 h-7 {% if debt > 0 %}bg-red-200{% else %}bg-emerald-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
-                <svg class="w-3.5 h-3.5 {% if debt > 0 %}text-red-600{% else %}text-emerald-700{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <div
+                class="w-7 h-7 {% if debt > 0 %}bg-red-200{% else %}bg-emerald-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 {% if debt > 0 %}text-red-600{% else %}text-emerald-700{% endif %}" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
             <span class="text-xs text-gray-400 font-medium">Qarz (bizda)</span>
@@ -75,9 +83,12 @@
 
     <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
         <div class="flex items-center gap-2 mb-2">
-            <div class="w-7 h-7 {% if profit >= 0 %}bg-blue-100{% else %}bg-red-100{% endif %} rounded-lg flex items-center justify-center shrink-0">
-                <svg class="w-3.5 h-3.5 {% if profit >= 0 %}text-blue-600{% else %}text-red-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            <div
+                class="w-7 h-7 {% if profit >= 0 %}bg-blue-100{% else %}bg-red-100{% endif %} rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 {% if profit >= 0 %}text-blue-600{% else %}text-red-500{% endif %}" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
             </div>
             <span class="text-xs text-gray-400 font-medium">Sotuv foydasi</span>
@@ -95,7 +106,7 @@
         <div class="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
             </div>
             <h3 class="text-sm font-bold text-gray-700">Yangi Xarid</h3>
@@ -127,7 +138,8 @@
                             <button type="button" id="purchaseSumBtn" onclick="setPurchaseCurrency('sum')"
                                 class="flex-1 py-1.5 bg-blue-600 text-white transition-all">So'm</button>
                             <button type="button" id="purchaseUsdBtn" onclick="setPurchaseCurrency('usd')"
-                                class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$ Dollar</button>
+                                class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$
+                                Dollar</button>
                         </div>
                         <input type="hidden" name="purchase_currency" id="purchaseCurrencyHidden" value="sum">
                         <div id="purchaseSumDiv">
@@ -153,7 +165,8 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Izoh <span class="text-gray-300 font-normal">(ixtiyoriy)</span></label>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Izoh <span
+                            class="text-gray-300 font-normal">(ixtiyoriy)</span></label>
                     <input type="text" name="note" placeholder="..."
                         class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                 </div>
@@ -168,9 +181,10 @@
     <!-- To'lov qo'shish -->
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
-            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
+            <div
+                class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
             </div>
             <h3 class="text-sm font-bold text-gray-700">To'lov Qo'shish</h3>
@@ -186,12 +200,12 @@
                         <button type="button" id="paymentSumBtn" onclick="setPaymentCurrency('sum')"
                             class="flex-1 py-1.5 bg-emerald-600 text-white transition-all">So'm</button>
                         <button type="button" id="paymentUsdBtn" onclick="setPaymentCurrency('usd')"
-                            class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$ Dollar</button>
+                            class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$
+                            Dollar</button>
                     </div>
                     <input type="hidden" name="payment_currency" id="paymentCurrencyHidden" value="sum">
                     <div id="paymentSumDiv">
-                        <input required type="number" name="amount" id="paymentSumInput" min="1"
-                            placeholder="So'mda"
+                        <input required type="number" name="amount" id="paymentSumInput" min="1" placeholder="So'mda"
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all">
                     </div>
                     <div id="paymentUsdDiv" class="hidden space-y-2">
@@ -221,7 +235,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Izoh <span class="text-gray-300 font-normal">(ixtiyoriy)</span></label>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Izoh <span
+                            class="text-gray-300 font-normal">(ixtiyoriy)</span></label>
                     <input type="text" name="comment" placeholder="..."
                         class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all">
                 </div>
@@ -244,19 +259,26 @@
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Sana</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mahsulot</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Miqdor</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Narxi</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Jami</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Izoh</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Sana
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Mahsulot</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Miqdor
+                    </th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Narxi
+                    </th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Jami
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Izoh
+                    </th>
                     <th class="px-4 py-3 w-10"></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for p in purchases %}
                 <tr class="hover:bg-gray-50/80 transition-colors">
-                    <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{{ p.purchase_date|date:"d.m.Y" }}</td>
+                    <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{{ p.purchase_date|date:"d.m.Y" }}
+                    </td>
                     <td class="px-4 py-3 font-semibold text-gray-800">{{ p.product.name|default:"—" }}</td>
                     <td class="px-4 py-3 text-right text-gray-600">{{ p.quantity|format_currency }}</td>
                     <td class="px-4 py-3 text-right text-gray-600">{{ p.price_per_unit|format_currency }}</td>
@@ -270,7 +292,7 @@
                                 class="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
                         </form>
@@ -305,10 +327,14 @@
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Sana</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">To'lov turi</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Summa</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Izoh</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Sana
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">To'lov
+                        turi</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Summa
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Izoh
+                    </th>
                     <th class="px-4 py-3 w-10"></th>
                 </tr>
             </thead>
@@ -326,7 +352,8 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-right font-bold text-emerald-600 whitespace-nowrap">{{ pay.amount|format_currency }} so'm</td>
-                    <td class="px-4 py-3 text-gray-400 text-xs max-w-[140px] truncate">{{ pay.comment|default:"—" }}</td>
+                    <td class="px-4 py-3 text-gray-400 text-xs max-w-[140px] truncate">{{ pay.comment|default:"—" }}
+                    </td>
                     <td class="px-4 py-3 text-right">
                         <form action="{% url 'supplier_payment_delete' pay.pk %}" method="POST"
                             onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
@@ -335,7 +362,7 @@
                                 class="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
                         </form>
@@ -361,6 +388,12 @@
 </div>
 
 <script>
+    // Initialize currency on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        setPurchaseCurrency('sum');
+        setPaymentCurrency('sum');
+    });
+
     function setPurchaseCurrency(type) {
         const isUsd = (type === 'usd');
         document.getElementById('purchaseCurrencyHidden').value = type;

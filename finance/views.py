@@ -765,6 +765,8 @@ class SupplierDetailView(AdminOnlyMixin, View):
                 purchase = form.save(commit=False)
                 purchase.supplier = supplier
                 purchase.save()
+            else:
+                print(form.errors)
         elif action == 'payment':
             form = SupplierPaymentForm(request.POST)
             if form.is_valid():
