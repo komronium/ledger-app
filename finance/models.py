@@ -147,13 +147,34 @@ class PaymentHistory(models.Model):
 
 
 class Purchase(models.Model):
+
+    class PurchaseTypeChoices(models.TextChoices):
+        CASH = 'cash', 'Naqd'
+        CREDIT = 'credit', 'Qarz'
+        BARTER = 'barter', 'Barter (Ayirboshlash)'
+
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchases', verbose_name="Firma")
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases', verbose_name="Mahsulot")
     quantity = models.IntegerField(verbose_name="Miqdori")
-    price_per_unit = models.IntegerField(verbose_name="Birlik narxi")
-    total_cost = models.IntegerField(verbose_name="Jami narx")
+    price_per_unit = models.IntegerField(null=True, blank=True, verbose_name="Birlik narxi")
+    total_cost = models.IntegerField(default=0, verbose_name="Jami narx")
     purchase_date = models.DateField(auto_now_add=True)
     note = models.TextField(blank=True, null=True, verbose_name="Izoh")
+    purchase_type = models.CharField(
+        max_length=20,
+        choices=PurchaseTypeChoices.choices,
+        default=PurchaseTypeChoices.CASH,
+        verbose_name="Xarid turi"
+    )
+    barter_product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='barter_purchases',
+        verbose_name="Barter mahsuloti"
+    )
+    barter_quantity = models.IntegerField(default=0, verbose_name="Barter miqdori")
 
     class Meta:
         db_table = 'purchases'
@@ -164,12 +185,21 @@ class Purchase(models.Model):
     def save(self, *args, **kwargs):
         # Check if this is a new purchase (not an update)
         is_new = self.pk is None
-        self.total_cost = self.quantity * self.price_per_unit
+        # Calculate total_cost only if price_per_unit is provided
+        if self.price_per_unit is not None:
+            self.total_cost = self.quantity * self.price_per_unit
+        else:
+            # For barter purchases, total_cost is 0 or can be set to a nominal value
+            self.total_cost = 0
         super().save(*args, **kwargs)
         # Add quantity to product stock for new purchases
         if is_new and self.product:
             self.product.quantity += self.quantity
             self.product.save()
+        # Subtract barter product quantity for new barter purchases
+        if is_new and self.purchase_type == 'barter' and self.barter_product:
+            self.barter_product.quantity -= self.barter_quantity
+            self.barter_product.save()
 
     def __str__(self):
         return f"{self.supplier.name} - {self.product} - {self.purchase_date}"

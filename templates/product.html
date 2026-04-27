@@ -51,47 +51,39 @@
             </thead>
             <tbody id="productTable" class="divide-y divide-gray-100">
                 {% for product in products %}
-                <tr class="hover:bg-gray-50/60 transition-colors {% if product.quantity <= 0 %}bg-red-50/40{% elif product.quantity <= 10 %}bg-amber-50/30{% endif %}">
-                    <td class="px-5 py-3.5">
+                <tr class="hover:bg-gray-50/60 transition-colors">
+                    <td class="px-5 py-3">
                         <div class="flex items-center gap-2.5">
-                            {% if product.quantity <= 0 %}
-                            <div class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
-                            {% elif product.quantity <= 10 %}
-                            <div class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></div>
-                            {% else %}
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></div>
-                            {% endif %}
                             <span class="font-semibold text-gray-800">{{ product.name }}</span>
                         </div>
                     </td>
-                    <td class="px-5 py-3.5 text-right whitespace-nowrap hidden sm:table-cell">
+                    <td class="px-5 py-3 text-right whitespace-nowrap hidden sm:table-cell">
                         <span class="font-semibold text-gray-700">{{ product.price|format_currency }}</span>
                         <span class="text-xs text-gray-400 ml-0.5">so'm</span>
                     </td>
-                    <td class="px-5 py-3.5 text-right">
+                    <td class="px-5 py-3 text-right">
                         {% if product.quantity <= 0 %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-red-700 text-xs font-bold">
                             {{ product.quantity }}
                         </span>
                         {% elif product.quantity <= 10 %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-amber-700 text-xs font-bold">
                             {{ product.quantity }}
                         </span>
                         {% else %}
                         <span class="font-bold text-gray-700">{{ product.quantity }}</span>
                         {% endif %}
                     </td>
-                    <td class="px-5 py-3.5 text-xs text-gray-500 hidden md:table-cell">
+                    <td class="px-5 py-3 text-xs text-gray-500 hidden md:table-cell">
                         {% if product.supplier.name %}
                         <span class="inline-flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-blue-300 shrink-0"></span>
                             {{ product.supplier.name }}
                         </span>
                         {% else %}
                         <span class="text-gray-300">—</span>
                         {% endif %}
                     </td>
-                    <td class="px-5 py-3.5 text-center hidden sm:table-cell">
+                    <td class="px-5 py-3 text-center hidden sm:table-cell">
                         {% if product.promo_buy and product.promo_free %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
                             {{ product.promo_buy }}+{{ product.promo_free }}
@@ -100,13 +92,13 @@
                         <span class="text-gray-200 text-xs">—</span>
                         {% endif %}
                     </td>
-                    <td class="px-5 py-3.5 text-right">
+                    <td class="px-5 py-3 text-right">
                         <span class="font-bold text-gray-800">{{ product.total_deducted|default:0|format_currency }}</span>
                         {% if product.total_free > 0 %}
                         <div class="text-[10px] text-orange-500 font-semibold leading-tight mt-0.5">+{{ product.total_free }} bepul</div>
                         {% endif %}
                     </td>
-                    <td class="px-5 py-3.5 text-right">
+                    <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-1">
                             <button
                                 onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.price }}, '{{ product.supplier_id|default:'' }}', {{ product.promo_buy|default:'null' }}, {{ product.promo_free|default:'null' }})"

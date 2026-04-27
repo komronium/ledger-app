@@ -29,7 +29,8 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-2 {% if supplier.initial_debt %}sm:grid-cols-5{% else %}sm:grid-cols-4{% endif %} gap-3 mb-6">
+<div
+    class="grid grid-cols-2 {% if supplier.initial_debt %}sm:grid-cols-5{% else %}sm:grid-cols-4{% endif %} gap-3 mb-6">
 
     <!-- Jami xarid -->
     <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
@@ -42,7 +43,7 @@
             </div>
             <span class="text-xs text-gray-400 font-medium">Jami xarid</span>
         </div>
-        <div class="text-lg font-black text-gray-800">{{ total_purchased|format_currency }}</div>
+        <div class="text-lg font-black text-gray-900">{{ total_purchased|format_currency }}</div>
         <div class="text-[10px] text-gray-400">so'm</div>
     </div>
 
@@ -85,9 +86,11 @@
     </div>
 
     <!-- Qarz -->
-    <div class="rounded-2xl border p-4 shadow-sm {% if debt > 0 %}bg-red-50 border-red-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+    <div
+        class="rounded-2xl border p-4 shadow-sm {% if debt > 0 %}bg-red-50 border-red-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
         <div class="flex items-center gap-2 mb-2">
-            <div class="w-7 h-7 {% if debt > 0 %}bg-red-200{% else %}bg-emerald-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
+            <div
+                class="w-7 h-7 {% if debt > 0 %}bg-red-200{% else %}bg-emerald-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5 {% if debt > 0 %}text-red-600{% else %}text-emerald-700{% endif %}" fill="none"
                     stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -135,6 +138,15 @@
             <input type="hidden" name="action" value="purchase">
             <div class="space-y-3">
                 <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Xarid turi</label>
+                    <select name="purchase_type" id="purchaseType" onchange="toggleBarter()"
+                        class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                        <option value="cash">Naqd</option>
+                        <option value="credit">Qarz</option>
+                        <option value="barter">Barter (Ayirboshlash)</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Mahsulot</label>
                     <select name="product"
                         class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
@@ -144,43 +156,60 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Miqdor</label>
-                        <input required type="number" name="quantity" min="1" placeholder="0"
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Miqdor</label>
+                    <input required type="number" name="quantity" min="1" placeholder="0"
+                        class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+                <div id="priceField">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Birlik narxi</label>
+                    <!-- Currency toggle -->
+                    <div class="flex rounded-lg border border-gray-200 overflow-hidden mb-2 text-xs font-semibold">
+                        <button type="button" id="purchaseSumBtn" onclick="setPurchaseCurrency('sum')"
+                            class="flex-1 py-1.5 bg-blue-600 text-white transition-all">So'm</button>
+                        <button type="button" id="purchaseUsdBtn" onclick="setPurchaseCurrency('usd')"
+                            class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$
+                            Dollar</button>
+                    </div>
+                    <input type="hidden" name="purchase_currency" id="purchaseCurrencyHidden" value="sum">
+                    <div id="purchaseSumDiv">
+                        <input required type="number" name="price_per_unit" id="purchaseSumInput" min="0"
+                            placeholder="So'mda"
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Birlik narxi</label>
-                        <!-- Currency toggle -->
-                        <div class="flex rounded-lg border border-gray-200 overflow-hidden mb-2 text-xs font-semibold">
-                            <button type="button" id="purchaseSumBtn" onclick="setPurchaseCurrency('sum')"
-                                class="flex-1 py-1.5 bg-blue-600 text-white transition-all">So'm</button>
-                            <button type="button" id="purchaseUsdBtn" onclick="setPurchaseCurrency('usd')"
-                                class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$
-                                Dollar</button>
-                        </div>
-                        <input type="hidden" name="purchase_currency" id="purchaseCurrencyHidden" value="sum">
-                        <div id="purchaseSumDiv">
-                            <input required type="number" name="price_per_unit" id="purchaseSumInput" min="0"
-                                placeholder="So'mda"
-                                class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                        </div>
-                        <div id="purchaseUsdDiv" class="hidden space-y-2">
-                            <input type="number" id="purchaseUsdAmount" placeholder="Dollar miqdori"
-                                class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    <div id="purchaseUsdDiv" class="hidden space-y-2">
+                        <input type="number" id="purchaseUsdAmount" placeholder="Dollar miqdori"
+                            class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            oninput="calculatePurchaseSum()">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-gray-400 shrink-0">Kurs:</span>
+                            <input type="number" id="purchaseRate" value="12700"
+                                class="w-20 p-1.5 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 transition-all"
                                 oninput="calculatePurchaseSum()">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs text-gray-400 shrink-0">Kurs:</span>
-                                <input type="number" id="purchaseRate" value="12700"
-                                    class="w-20 p-1.5 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 transition-all"
-                                    oninput="calculatePurchaseSum()">
-                                <span class="text-xs text-gray-400">=</span>
-                                <input type="number" id="purchaseConverted"
-                                    class="flex-1 p-1.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-700 transition-all"
-                                    readonly>
-                            </div>
+                            <span class="text-xs text-gray-400">=</span>
+                            <input type="number" name="price_per_unit" id="purchaseConverted"
+                                class="flex-1 p-1.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-700 transition-all"
+                                readonly>
                         </div>
+                    </div>
+                </div>
+                <!-- Barter fields -->
+                <div id="barterFields" class="hidden space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h4 class="text-xs font-bold text-amber-800 mb-2">Barter (Ayirboshlash)</h4>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beriladigan mahsulot</label>
+                        <select name="barter_product"
+                            class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all">
+                            <option value="">— Tanlang —</option>
+                            {% for p in all_products %}
+                            <option value="{{ p.id }}">{{ p.name }} (Mavjud: {{ p.quantity }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beriladigan miqdor</label>
+                        <input type="number" name="barter_quantity" min="1" placeholder="0"
+                            class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all">
                     </div>
                 </div>
                 <div>
@@ -296,12 +325,12 @@
             <tbody class="divide-y divide-gray-100">
                 {% for p in purchases %}
                 <tr class="hover:bg-gray-50/80 transition-colors">
-                    <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{{ p.purchase_date|date:"d.m.Y" }}
+                    <td class="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{{ p.purchase_date|date:"d.m.Y" }}
                     </td>
                     <td class="px-4 py-3 font-semibold text-gray-800">{{ p.product.name|default:"—" }}</td>
-                    <td class="px-4 py-3 text-right text-gray-600">{{ p.quantity|format_currency }}</td>
-                    <td class="px-4 py-3 text-right text-gray-600">{{ p.price_per_unit|format_currency }}</td>
-                    <td class="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">{{ p.total_cost|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-right text-gray-800">{{ p.quantity|format_currency }}</td>
+                    <td class="px-4 py-3 text-right text-gray-800">{{ p.price_per_unit|format_currency }}</td>
+                    <td class="px-4 py-3 text-right font-bold text-red-600 whitespace-nowrap">{{ p.total_cost|format_currency }} so'm</td>
                     <td class="px-4 py-3 text-gray-400 text-xs max-w-[120px] truncate">{{ p.note|default:"—" }}</td>
                     <td class="px-4 py-3 text-right">
                         <form action="{% url 'purchase_delete' p.pk %}" method="POST"
@@ -327,7 +356,7 @@
             <tfoot class="bg-gray-50 border-t border-gray-200">
                 <tr>
                     <td colspan="4" class="px-4 py-3 text-sm font-bold text-gray-700">Jami:</td>
-                    <td class="px-4 py-3 text-right font-black text-gray-800 whitespace-nowrap">{{ total_purchased|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-right font-black text-red-700 whitespace-nowrap">{{ total_purchased|format_currency }} so'm</td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>
@@ -411,7 +440,25 @@
     document.addEventListener('DOMContentLoaded', function () {
         setPurchaseCurrency('sum');
         setPaymentCurrency('sum');
+        toggleBarter();
     });
+
+    function toggleBarter() {
+        const purchaseType = document.getElementById('purchaseType').value;
+        const barterFields = document.getElementById('barterFields');
+        const priceField = document.getElementById('priceField');
+        const priceInput = document.getElementById('purchaseSumInput');
+
+        if (purchaseType === 'barter') {
+            barterFields.classList.remove('hidden');
+            priceField.classList.add('hidden');
+            priceInput.removeAttribute('required');
+        } else {
+            barterFields.classList.add('hidden');
+            priceField.classList.remove('hidden');
+            priceInput.setAttribute('required', '');
+        }
+    }
 
     function setPurchaseCurrency(type) {
         const isUsd = (type === 'usd');

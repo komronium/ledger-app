@@ -750,6 +750,7 @@ class SupplierDetailView(AdminOnlyMixin, View):
         profit = revenue - cost
 
         products = Product.objects.filter(supplier=supplier)
+        all_products = Product.objects.all()
 
         total_owed = supplier.initial_debt + total_purchased
 
@@ -764,6 +765,7 @@ class SupplierDetailView(AdminOnlyMixin, View):
             'revenue': revenue,
             'profit': profit,
             'products': products,
+            'all_products': all_products,
             'page': 'supplier',
         })
 
@@ -771,10 +773,29 @@ class SupplierDetailView(AdminOnlyMixin, View):
         supplier = get_object_or_404(Supplier, pk=pk)
         action = request.POST.get('action')
         if action == 'purchase':
+            purchase_type = request.POST.get('purchase_type', 'cash')
+            barter_product_id = request.POST.get('barter_product')
+            barter_quantity = request.POST.get('barter_quantity', 0)
+            price_per_unit = request.POST.get('price_per_unit')
+
+            # Validate: price is required for non-barter purchases
+            if purchase_type != 'barter' and not price_per_unit:
+                return redirect('supplier_detail', pk=pk)
+
+            # Validate: barter fields are required for barter purchases
+            if purchase_type == 'barter' and (not barter_product_id or not barter_quantity):
+                return redirect('supplier_detail', pk=pk)
+
             form = PurchaseForm(request.POST)
             if form.is_valid():
                 purchase = form.save(commit=False)
                 purchase.supplier = supplier
+                purchase.purchase_type = purchase_type
+
+                if purchase_type == 'barter' and barter_product_id:
+                    purchase.barter_product_id = barter_product_id
+                    purchase.barter_quantity = int(barter_quantity) if barter_quantity else 0
+
                 purchase.save()
             else:
                 print(form.errors)

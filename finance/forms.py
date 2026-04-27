@@ -193,6 +193,10 @@ class PurchaseForm(forms.ModelForm):
         model = Purchase
         fields = ['product', 'quantity', 'price_per_unit', 'note']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['price_per_unit'].required = False
+
 
 class SupplierPaymentForm(forms.ModelForm):
 
