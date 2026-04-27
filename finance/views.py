@@ -626,7 +626,7 @@ class StatisticsView(AdminOnlyMixin, View):
             # All-time debt (not year-filtered)
             all_purchases = sum(p.total_cost for p in supplier.purchases.all())
             all_payments = sum(p.amount for p in supplier.payments.all())
-            debt = all_purchases - all_payments
+            debt = supplier.initial_debt + all_purchases - all_payments
 
             supplier_orders = orders.filter(product__supplier=supplier)
             sales_revenue = sum(o.total_price for o in supplier_orders)
@@ -698,10 +698,18 @@ class SupplierView(AdminOnlyMixin, View):
         for s in suppliers:
             purchased = sum(p.total_cost for p in s.purchases.all())
             paid = sum(p.amount for p in s.payments.all())
-            supplier_debts[s.pk] = purchased - paid
+            supplier_debts[s.pk] = s.initial_debt + purchased - paid
+
+        total_products = sum(s.product_count for s in suppliers)
+        total_supplier_debt = sum(d for d in supplier_debts.values() if d > 0)
+        debtors_count = sum(1 for d in supplier_debts.values() if d > 0)
+
         return render(request, self.template_name, {
             "suppliers": suppliers,
             "supplier_debts": supplier_debts,
+            "total_products": total_products,
+            "total_supplier_debt": total_supplier_debt,
+            "debtors_count": debtors_count,
             "page": "supplier",
         })
 
@@ -734,7 +742,7 @@ class SupplierDetailView(AdminOnlyMixin, View):
 
         total_purchased = sum(p.total_cost for p in purchases)
         total_paid = sum(p.amount for p in payments)
-        debt = total_purchased - total_paid
+        debt = supplier.initial_debt + total_purchased - total_paid
 
         orders = Order.objects.filter(product__supplier=supplier)
         revenue = sum(o.total_price for o in orders)
@@ -743,12 +751,15 @@ class SupplierDetailView(AdminOnlyMixin, View):
 
         products = Product.objects.filter(supplier=supplier)
 
+        total_owed = supplier.initial_debt + total_purchased
+
         return render(request, self.template_name, {
             'supplier': supplier,
             'purchases': purchases,
             'payments': payments,
             'total_purchased': total_purchased,
             'total_paid': total_paid,
+            'total_owed': total_owed,
             'debt': debt,
             'revenue': revenue,
             'profit': profit,

@@ -177,7 +177,7 @@ class SupplierForm(forms.ModelForm):
 
     class Meta:
         model = Supplier
-        fields = ['name', 'phone', 'address']
+        fields = ['name', 'phone', 'address', 'initial_debt']
 
 
 class ExpenseForm(forms.ModelForm):

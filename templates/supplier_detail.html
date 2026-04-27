@@ -29,7 +29,9 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+<div class="grid grid-cols-2 {% if supplier.initial_debt %}sm:grid-cols-5{% else %}sm:grid-cols-4{% endif %} gap-3 mb-6">
+
+    <!-- Jami xarid -->
     <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
         <div class="flex items-center gap-2 mb-2">
             <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
@@ -44,6 +46,24 @@
         <div class="text-[10px] text-gray-400">so'm</div>
     </div>
 
+    <!-- Eski qarz (only if set) -->
+    {% if supplier.initial_debt %}
+    <div class="bg-white rounded-2xl border border-orange-100 p-4 shadow-sm">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">Eski qarz</span>
+        </div>
+        <div class="text-lg font-black text-orange-600">{{ supplier.initial_debt|format_currency }}</div>
+        <div class="text-[10px] text-gray-400">so'm</div>
+    </div>
+    {% endif %}
+
+    <!-- Jami to'lov -->
     <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
         <div class="flex items-center gap-2 mb-2">
             <div class="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
@@ -56,19 +76,18 @@
         </div>
         <div class="text-lg font-black text-emerald-600">{{ total_paid|format_currency }}</div>
         <div class="text-[10px] text-gray-400">so'm</div>
-        {% if total_purchased > 0 %}
+        {% if total_owed > 0 %}
         <div class="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
             <div class="h-full bg-emerald-400 rounded-full transition-all"
-                style="width: {{ total_paid|pct:total_purchased }}%"></div>
+                style="width: {{ total_paid|pct:total_owed }}%"></div>
         </div>
         {% endif %}
     </div>
 
-    <div
-        class="rounded-2xl border p-4 shadow-sm {% if debt > 0 %}bg-red-50 border-red-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+    <!-- Qarz -->
+    <div class="rounded-2xl border p-4 shadow-sm {% if debt > 0 %}bg-red-50 border-red-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
         <div class="flex items-center gap-2 mb-2">
-            <div
-                class="w-7 h-7 {% if debt > 0 %}bg-red-200{% else %}bg-emerald-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
+            <div class="w-7 h-7 {% if debt > 0 %}bg-red-200{% else %}bg-emerald-200{% endif %} rounded-lg flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5 {% if debt > 0 %}text-red-600{% else %}text-emerald-700{% endif %}" fill="none"
                     stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -157,7 +176,7 @@
                                     class="w-20 p-1.5 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 transition-all"
                                     oninput="calculatePurchaseSum()">
                                 <span class="text-xs text-gray-400">=</span>
-                                <input type="number" name="price_per_unit" id="purchaseConverted"
+                                <input type="number" id="purchaseConverted"
                                     class="flex-1 p-1.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-700 transition-all"
                                     readonly>
                             </div>
@@ -218,7 +237,7 @@
                                 class="w-20 p-1.5 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-emerald-500 transition-all"
                                 oninput="calculatePaymentSum()">
                             <span class="text-xs text-gray-400">=</span>
-                            <input type="number" name="amount" id="paymentConverted"
+                            <input type="number" id="paymentConverted"
                                 class="flex-1 p-1.5 border border-emerald-200 rounded-lg bg-emerald-50 text-sm font-bold text-emerald-700 transition-all"
                                 readonly>
                         </div>

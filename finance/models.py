@@ -36,6 +36,7 @@ class Supplier(models.Model):
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
+    initial_debt = models.IntegerField(default=0, verbose_name="Boshlang'ich qarz")
 
     class Meta:
         db_table = 'suppliers'
