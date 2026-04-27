@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- Header -->
-<div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
     <div>
         <h2 class="text-xl font-bold text-gray-800">Xarajatlar</h2>
         <p class="text-xs text-gray-400 mt-0.5">Operatsion xarajatlar ro'yxati</p>
@@ -18,21 +18,24 @@
 </div>
 
 <!-- Summary -->
-<div class="grid grid-cols-2 gap-4 mb-5">
-    <div class="bg-white border border-gray-200 rounded-xl p-5">
-        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Jami xarajat</p>
-        <p class="text-2xl font-black text-red-600 leading-none">{{ total|format_currency }}</p>
-        <p class="text-xs text-gray-400 mt-2">so'm</p>
+<div class="bg-white border border-gray-200 rounded-xl p-5 mb-5 border-l-4 border-l-red-500 flex items-center gap-5">
+    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl p-5">
-        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Yozuvlar soni</p>
-        <p class="text-2xl font-black text-gray-900 leading-none">{{ expenses|length }}</p>
-        <p class="text-xs text-gray-400 mt-2">ta xarajat</p>
+    <div>
+        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Jami xarajat</p>
+        <p class="text-2xl font-black text-red-600 leading-none">{{ total|format_currency }} <span class="text-sm font-normal text-gray-400">so'm</span></p>
+    </div>
+    <div class="ml-auto text-right">
+        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Yozuvlar</p>
+        <p class="text-xl font-black text-gray-700 leading-none">{{ expenses|length }} <span class="text-sm font-normal text-gray-400">ta</span></p>
     </div>
 </div>
 
 <!-- Table card -->
-<div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <span class="text-sm font-semibold text-gray-800">Ro'yxat</span>
         <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full font-medium">{{ expenses|length }} ta</span>
@@ -52,9 +55,21 @@
                 {% for expense in expenses %}
                 <tr class="hover:bg-gray-50/60 transition-colors">
                     <td class="px-5 py-3.5 text-xs text-gray-400 whitespace-nowrap">{{ expense.date|date:"d.m.Y" }}</td>
-                    <td class="px-5 py-3.5 font-semibold text-gray-800">{{ expense.title }}</td>
+                    <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-md bg-red-50 flex items-center justify-center shrink-0">
+                                <svg class="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-gray-800">{{ expense.title }}</span>
+                        </div>
+                    </td>
                     <td class="px-5 py-3.5 text-xs text-gray-400 hidden sm:table-cell">{{ expense.note|default:"—" }}</td>
-                    <td class="px-5 py-3.5 text-right font-bold text-red-600 whitespace-nowrap">{{ expense.amount|format_currency }} so'm</td>
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                        <span class="font-bold text-red-600">{{ expense.amount|format_currency }}</span>
+                        <span class="text-xs text-gray-400 ml-0.5">so'm</span>
+                    </td>
                     <td class="px-5 py-3.5 text-right">
                         <form action="{% url 'expense_delete' expense.id %}" method="POST"
                             onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
@@ -70,7 +85,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="px-5 py-16 text-center text-sm text-gray-400">Hozircha xarajatlar yo'q</td>
+                    <td colspan="6" class="px-5 py-16 text-center text-sm text-gray-400">Hozircha xarajatlar yo'q</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -78,7 +93,9 @@
             <tfoot>
                 <tr class="border-t border-gray-200 bg-gray-50">
                     <td colspan="3" class="px-5 py-3 text-[11px] font-bold text-gray-500 uppercase">Jami</td>
-                    <td class="px-5 py-3 text-right font-black text-red-600 whitespace-nowrap">{{ total|format_currency }} so'm</td>
+                    <td class="px-5 py-3 text-right font-black text-red-600 whitespace-nowrap">
+                        {{ total|format_currency }} <span class="text-[11px] font-normal text-gray-400">so'm</span>
+                    </td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -91,7 +108,14 @@
 <div id="addModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md animate-fade-in">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h3 class="font-bold text-gray-800 text-base">Yangi Xarajat</h3>
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">Yangi Xarajat</h3>
+            </div>
             <button onclick="document.getElementById('addModal').classList.add('hidden')"
                 class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

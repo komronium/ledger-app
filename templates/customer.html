@@ -28,14 +28,28 @@
 
 <!-- Summary -->
 <div class="grid grid-cols-2 gap-4 mb-5">
-    <div class="bg-white border border-gray-200 rounded-xl p-5">
-        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Jami mijozlar</p>
+    <div class="bg-white border border-gray-200 rounded-xl p-5 border-t-[3px] border-t-blue-500">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Jami mijozlar</p>
+        </div>
         <p class="text-2xl font-black text-gray-900 leading-none">{{ customers|length }}</p>
         <p class="text-xs text-gray-400 mt-2">ta xaridor</p>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl p-5">
-        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Jami qarz</p>
-        <p class="text-2xl font-black leading-none {% if total_debt > 0 %}text-red-600{% else %}text-gray-900{% endif %}">{{ total_debt|format_currency }}</p>
+    <div class="bg-white border border-gray-200 rounded-xl p-5 border-t-[3px] {% if total_debt > 0 %}border-t-red-500{% else %}border-t-emerald-500{% endif %}">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded-lg {% if total_debt > 0 %}bg-red-50{% else %}bg-emerald-50{% endif %} flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5 {% if total_debt > 0 %}text-red-500{% else %}text-emerald-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Jami qarz</p>
+        </div>
+        <p class="text-2xl font-black leading-none {% if total_debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ total_debt|format_currency }}</p>
         <p class="text-xs text-gray-400 mt-2">so'm</p>
     </div>
 </div>
@@ -78,19 +92,36 @@
             </thead>
             <tbody id="clientsTable" class="divide-y divide-gray-100">
                 {% for customer in customers %}
-                <tr class="hover:bg-gray-50/60 transition-colors">
+                <tr class="hover:bg-gray-50/60 transition-colors"
+                    data-id="{{ customer.id }}"
+                    data-name="{{ customer.name|escapejs }}"
+                    data-phone="{{ customer.phone|escapejs }}"
+                    data-address="{{ customer.address|default:''|escapejs }}"
+                    data-debt="{{ customer.default_debt|default:0 }}">
                     <td class="px-5 py-3.5 text-xs text-gray-400">{{ forloop.counter }}</td>
                     <td class="px-5 py-3.5">
-                        <a href="{% url 'dashboard' %}?customer_id={{ customer.id }}#invoice"
-                            class="font-semibold text-gray-800 hover:text-blue-600 transition-colors">
-                            {{ customer.name }}
-                        </a>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                                {{ customer.name|slice:":1"|upper }}
+                            </div>
+                            <a href="{% url 'dashboard' %}?customer_id={{ customer.id }}#invoice"
+                                class="font-semibold text-gray-800 hover:text-blue-600 transition-colors text-sm">
+                                {{ customer.name }}
+                            </a>
+                        </div>
                     </td>
                     <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell">{{ customer.phone }}</td>
                     <td class="px-5 py-3.5 text-xs text-gray-400 hidden md:table-cell">{{ customer.address|default:"—" }}</td>
-                    <td class="px-5 py-3.5 text-right font-bold whitespace-nowrap
-                        {% if customer.total_debt > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
-                        {{ customer.total_debt|format_currency }} so'm
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                        {% if customer.total_debt > 0 %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-600 text-xs font-bold">
+                            {{ customer.total_debt|format_currency }} so'm
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">
+                            {{ customer.total_debt|format_currency }} so'm
+                        </span>
+                        {% endif %}
                     </td>
                     <td class="hidden">{{ customer.id }}</td>
                     <td class="px-5 py-3.5 text-right">
@@ -261,18 +292,11 @@ function generatePDF() {
 
 function editClient(button) {
     const row = button.closest('tr');
-    const cells = row.querySelectorAll('td');
-    const name = cells[1].innerText.trim();
-    const phone = cells[2].innerText.trim();
-    const address = cells[3].innerText.trim();
-    const debt = cells[4].innerText.replace(/\D/g, '');
-    const customer_id = cells[5].innerText.trim();
-
-    document.getElementById('editClientName').value = name;
-    document.getElementById('editClientPhone').value = phone;
-    document.getElementById('editClientAddress').value = address === '—' ? '' : address;
-    document.getElementById('editClientDebt').value = debt;
-    document.getElementById('editClientID').value = customer_id;
+    document.getElementById('editClientName').value = row.dataset.name || '';
+    document.getElementById('editClientPhone').value = row.dataset.phone || '';
+    document.getElementById('editClientAddress').value = row.dataset.address || '';
+    document.getElementById('editClientDebt').value = row.dataset.debt || '';
+    document.getElementById('editClientID').value = row.dataset.id || '';
     document.getElementById('editClientModal').classList.remove('hidden');
 }
 
