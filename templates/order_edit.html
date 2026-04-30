@@ -25,13 +25,16 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Mahsulot</label>
-                        <select id="productSelect" name="product_id" required
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all">
-                            <option value="">Mahsulotni tanlang</option>
-                            {% for product in products %}
-                            <option value="{{ product.id }}" {% if order.product.id == product.id %}selected{% endif %}>{{ product.name }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="relative">
+                            <input type="text" id="productSearch" autocomplete="off"
+                                value="{{ order.product.name|default:'' }}"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all outline-none"
+                                placeholder="Qidirish..."
+                                oninput="searchProducts()" onfocus="showProductDropdown()" onblur="hideProductDropdown()">
+                            <div id="productDropdown"
+                                class="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden top-full mt-1"></div>
+                        </div>
+                        <input type="hidden" id="selectedProductId" name="product_id" value="{{ order.product.id|default:'' }}" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Miqdori</label>
@@ -145,8 +148,7 @@
 
     function showEditReceipt() {
         const customer = document.getElementById('clientSearch').value;
-        const productSel = document.getElementById('productSelect');
-        const productName = productSel.options[productSel.selectedIndex]?.text || '';
+        const productName = document.getElementById('productSearch').value || '';
         const qty = parseFloat(document.getElementById('quantity').value) || 0;
         const price = parseFloat(document.getElementById('price').value) || 0;
         const total = qty * price;
@@ -181,6 +183,56 @@
         {'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}'},
         {% endfor %}
     ];
+
+    let productsList = [
+        {% for p in products %}
+        { 'id': '{{ p.id }}', 'name': '{{ p.name|escapejs }}', 'price': {{ p.price|default:0 }}, 'quantity': {{ p.quantity|default:0 }} },
+        {% endfor %}
+    ];
+
+    function searchProducts() {
+        const term = document.getElementById('productSearch').value.toLowerCase();
+        const dropdown = document.getElementById('productDropdown');
+        const filtered = term.length === 0
+            ? productsList
+            : productsList.filter(p => (p.name || '').toLowerCase().includes(term));
+        dropdown.innerHTML = '';
+        if (filtered.length === 0) {
+            dropdown.innerHTML = '<div class="px-3 py-3 text-gray-400 text-sm">Mahsulot topilmadi</div>';
+            dropdown.classList.remove('hidden');
+            return;
+        }
+        filtered.forEach(p => {
+            const el = document.createElement('div');
+            const qtyClass = (p.quantity || 0) <= 0 ? 'text-red-500' : 'text-gray-500';
+            el.className = 'px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0';
+            el.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-gray-800 text-sm truncate">${p.name}</div>
+                        <div class="text-xs ${qtyClass}">Mavjud: ${Number(p.quantity || 0).toLocaleString('uz-UZ')}</div>
+                    </div>
+                    <div class="text-xs font-bold text-blue-600 whitespace-nowrap">${Number(p.price || 0).toLocaleString('uz-UZ')} so'm</div>
+                </div>`;
+            el.onmousedown = (ev) => { ev.preventDefault(); selectProduct(p); };
+            dropdown.appendChild(el);
+        });
+        dropdown.classList.remove('hidden');
+    }
+
+    function selectProduct(p) {
+        document.getElementById('productSearch').value = p.name;
+        document.getElementById('selectedProductId').value = p.id;
+        document.getElementById('productDropdown').classList.add('hidden');
+    }
+
+    function showProductDropdown() {
+        searchProducts();
+    }
+
+    function hideProductDropdown() {
+        setTimeout(() => document.getElementById('productDropdown').classList.add('hidden'), 200);
+    }
 
     function searchClients() {
         const searchTerm = document.getElementById('clientSearch').value.toLowerCase();

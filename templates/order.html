@@ -41,18 +41,20 @@
                 </div>
                 <div class="relative">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Mahsulot <span class="text-red-500">*</span></label>
-                    <select id="productSelect"
-                        class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
-                        onchange="autoFillPrice(this)">
-                        <option value="">— Tanlang —</option>
-                        {% for product in products %}
-                        <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}"
-                            data-quantity="{{ product.quantity }}"
-                            data-promo-buy="{{ product.promo_buy|default:'' }}"
-                            data-promo-free="{{ product.promo_free|default:'' }}">{{ product.name }} ({{ product.quantity }})
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="productSearch" autocomplete="off"
+                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
+                            placeholder="Qidirish..." oninput="searchProducts()" onfocus="showProductDropdown()" onblur="hideProductDropdown()">
+                        <div id="productDropdown"
+                            class="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden top-full mt-1">
+                        </div>
+                    </div>
+                    <input type="hidden" id="selectedProductId" value="">
+                    <input type="hidden" id="selectedProductName" value="">
+                    <input type="hidden" id="selectedProductPrice" value="">
+                    <input type="hidden" id="selectedProductQty" value="">
+                    <input type="hidden" id="selectedProductPromoBuy" value="">
+                    <input type="hidden" id="selectedProductPromoFree" value="">
                     <!-- Floating tooltip -->
                     <div id="productTooltip" class="hidden absolute left-0 top-full mt-1 z-20 flex flex-col gap-0.5 pointer-events-none">
                         <div id="quantityWarning" class="hidden text-xs bg-white border border-gray-200 shadow-sm rounded-md px-2.5 py-1 text-gray-500 whitespace-nowrap"></div>
@@ -369,10 +371,9 @@
         tooltip.classList.toggle('hidden', !anyVisible);
     }
 
-    function autoFillPrice(select) {
-        const selected = select.options[select.selectedIndex];
-        const price = selected ? selected.dataset.price : '';
-        const qty = selected ? selected.dataset.quantity : '0';
+    function autoFillPrice() {
+        const price = document.getElementById('selectedProductPrice').value || '';
+        const qty = document.getElementById('selectedProductQty').value || '0';
         if (price) {
             document.getElementById('price').value = price;
             calculateTotal();
@@ -384,8 +385,8 @@
         } else {
             warningDiv.classList.add('hidden');
         }
-        const promoBuy = selected ? selected.dataset.promoBuy : '';
-        const promoFree = selected ? selected.dataset.promoFree : '';
+        const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
+        const promoFree = document.getElementById('selectedProductPromoFree').value || '';
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
             promoDiv.textContent = 'Aksiya: ' + promoBuy + '+' + promoFree + ' (har ' + promoBuy + ' tadan ' + promoFree + ' ta bepul)';
@@ -403,10 +404,8 @@
     }
 
     function updatePromoPreview() {
-        const productSelect = document.getElementById('productSelect');
-        const selected = productSelect.options[productSelect.selectedIndex];
-        const promoBuy = selected ? selected.dataset.promoBuy : '';
-        const promoFree = selected ? selected.dataset.promoFree : '';
+        const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
+        const promoFree = document.getElementById('selectedProductPromoFree').value || '';
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
@@ -436,12 +435,10 @@
     }
 
     function validateQuantity() {
-        const productSelect = document.getElementById('productSelect');
-        const selected = productSelect.options[productSelect.selectedIndex];
-        const availableQty = parseInt(selected?.dataset?.quantity || 0);
+        const availableQty = parseInt(document.getElementById('selectedProductQty').value || 0);
         const requestedQty = parseInt(document.getElementById('quantity').value) || 0;
-        const promoBuy = selected?.dataset?.promoBuy || '';
-        const promoFree = selected?.dataset?.promoFree || '';
+        const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
+        const promoFree = document.getElementById('selectedProductPromoFree').value || '';
         const warningDiv = document.getElementById('quantityWarning');
 
         const freeCount = getPromoFreeCount(requestedQty, promoBuy, promoFree);
@@ -471,10 +468,9 @@
     function addOrderToList() {
         const clientId = document.getElementById('selectedClientId').value;
         const clientName = document.getElementById('clientSearch').value;
-        const productSelect = document.getElementById('productSelect');
-        const productId = productSelect.value;
-        const productName = productSelect.options[productSelect.selectedIndex]?.dataset?.name || '';
-        const availableQty = parseInt(productSelect.options[productSelect.selectedIndex]?.dataset?.quantity || 0);
+        const productId = document.getElementById('selectedProductId').value;
+        const productName = document.getElementById('selectedProductName').value;
+        const availableQty = parseInt(document.getElementById('selectedProductQty').value || 0);
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const price = parseInt(document.getElementById('price').value) || 0;
 
@@ -483,9 +479,8 @@
             return;
         }
 
-        // Validate quantity (aksiya bepul mahsulotlarni ham hisobga olgan holda)
-        const promoBuy = productSelect.options[productSelect.selectedIndex]?.dataset?.promoBuy || '';
-        const promoFree = productSelect.options[productSelect.selectedIndex]?.dataset?.promoFree || '';
+        const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
+        const promoFree = document.getElementById('selectedProductPromoFree').value || '';
         const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
         const totalToDeduct = quantity + freeCount;
         if (totalToDeduct > availableQty) {
@@ -509,10 +504,19 @@
         });
 
         renderPendingOrders();
-        // Clear inputs except client
         document.getElementById('quantity').value = '';
         document.getElementById('price').value = '';
         document.getElementById('grandTotal').value = '';
+        document.getElementById('productSearch').value = '';
+        document.getElementById('selectedProductId').value = '';
+        document.getElementById('selectedProductName').value = '';
+        document.getElementById('selectedProductPrice').value = '';
+        document.getElementById('selectedProductQty').value = '';
+        document.getElementById('selectedProductPromoBuy').value = '';
+        document.getElementById('selectedProductPromoFree').value = '';
+        document.getElementById('quantityWarning').classList.add('hidden');
+        document.getElementById('promoInfo').classList.add('hidden');
+        syncTooltipVisibility();
     }
 
     function removeOrder(index) {
@@ -687,6 +691,67 @@
     { 'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}' },
     {% endfor %}
         ]
+
+    let productsList = JSON.parse('{{ products_json|escapejs }}' || '[]');
+
+    function searchProducts() {
+        const term = document.getElementById('productSearch').value.toLowerCase();
+        const dropdown = document.getElementById('productDropdown');
+        const filtered = term.length === 0
+            ? productsList
+            : productsList.filter(p => (p.name || '').toLowerCase().includes(term));
+        renderProductDropdown(dropdown, filtered);
+    }
+
+    function renderProductDropdown(dropdown, list) {
+        dropdown.innerHTML = '';
+        if (list.length === 0) {
+            dropdown.innerHTML = '<div class="px-3 py-3 text-gray-400 text-sm">Mahsulot topilmadi</div>';
+            dropdown.classList.remove('hidden');
+            return;
+        }
+        list.forEach(p => {
+            const el = document.createElement('div');
+            const promoTag = (p.promo_buy && p.promo_free)
+                ? `<span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-bold">${p.promo_buy}+${p.promo_free}</span>`
+                : '';
+            const qtyClass = (p.quantity || 0) <= 0 ? 'text-red-500' : 'text-gray-500';
+            el.className = 'px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0';
+            el.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-gray-800 text-sm truncate">${p.name}${promoTag}</div>
+                        <div class="text-xs ${qtyClass}">Mavjud: <span class="font-medium">${Number(p.quantity || 0).toLocaleString('uz-UZ')}</span></div>
+                    </div>
+                    <div class="text-xs font-bold text-blue-600 whitespace-nowrap">${Number(p.price || 0).toLocaleString('uz-UZ')} so'm</div>
+                </div>`;
+            el.onmousedown = (ev) => { ev.preventDefault(); selectProduct(p); };
+            dropdown.appendChild(el);
+        });
+        dropdown.classList.remove('hidden');
+    }
+
+    function selectProduct(p) {
+        document.getElementById('productSearch').value = p.name;
+        document.getElementById('selectedProductId').value = p.id;
+        document.getElementById('selectedProductName').value = p.name;
+        document.getElementById('selectedProductPrice').value = p.price || '';
+        document.getElementById('selectedProductQty').value = p.quantity || 0;
+        document.getElementById('selectedProductPromoBuy').value = p.promo_buy || '';
+        document.getElementById('selectedProductPromoFree').value = p.promo_free || '';
+        document.getElementById('productDropdown').classList.add('hidden');
+        autoFillPrice();
+        const qInput = document.getElementById('quantity');
+        if (qInput && !qInput.value) qInput.focus();
+    }
+
+    function showProductDropdown() {
+        searchProducts();
+    }
+
+    function hideProductDropdown() {
+        setTimeout(() => document.getElementById('productDropdown').classList.add('hidden'), 200);
+    }
 
     function searchClients() {
         const searchTerm = document.getElementById('clientSearch').value.toLowerCase();

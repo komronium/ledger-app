@@ -87,12 +87,12 @@ class Product(models.Model):
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, related_name='orders', null=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name='orders', null=True)
-    
+
     quantity = models.IntegerField(verbose_name="Miqdori")
     price_per_kg = models.IntegerField()
     order_date = models.DateField(auto_now_add=True)
 
-    total_price = models.IntegerField()  
+    total_price = models.IntegerField()
     remaining_debt = models.IntegerField()
 
     class Meta:
@@ -100,24 +100,30 @@ class Order(models.Model):
         verbose_name = 'Order'
         verbose_name_plural = 'Orders'
 
+    def _compute_promo_free(self, product, quantity):
+        if not product:
+            return 0
+        if product.promo_buy and product.promo_free and product.promo_buy > 0:
+            return (quantity // product.promo_buy) * product.promo_free
+        return 0
+
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.price_per_kg
-        if self.pk is None:
-            self.remaining_debt = self.total_price
+        self.remaining_debt = self.total_price
 
-        if self.pk is None and self.product:
-            free_count = 0
-            if self.product.promo_buy and self.product.promo_free and self.product.promo_buy > 0:
-                free_count = (self.quantity // self.product.promo_buy) * self.product.promo_free
+        is_new = self.pk is None
+        if is_new and self.product:
+            free_count = self._compute_promo_free(self.product, self.quantity)
             self.product.quantity -= (self.quantity + free_count)
             self.product.save()
-
         super().save(*args, **kwargs)
-        
+
 
     def __str__(self):
-        return f"{self.customer.name} - {self.product.name} - {self.order_date}"
-    
+        product_name = self.product.name if self.product else '—'
+        customer_name = self.customer.name if self.customer else '—'
+        return f"{customer_name} - {product_name} - {self.order_date}"
+
 
 class PaymentHistory(models.Model):
 
@@ -125,6 +131,7 @@ class PaymentHistory(models.Model):
         BANK = 'bank', "Pul ko'chirish"
         CASH = 'cash', 'Naqd'
         CLICK = 'click', 'Click'
+        BARTER = 'barter', 'Barter (Mahsulot bilan)'
 
     customer = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='payment_histories')
     payment_type = models.CharField(
@@ -134,6 +141,24 @@ class PaymentHistory(models.Model):
         blank=True,
     )
     amount = models.DecimalField(max_digits=15, decimal_places=2)
+    usd_amount = models.DecimalField(
+        max_digits=15, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Dollar miqdori",
+    )
+    exchange_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Kurs (so'm)",
+    )
+    barter_product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='customer_barters',
+        verbose_name="Barter mahsuloti",
+    )
+    barter_quantity = models.IntegerField(default=0, verbose_name="Barter miqdori")
     comment = models.TextField(null=True, blank=True, verbose_name="Izoh")
     paid_at = models.DateTimeField(auto_now_add=True)
 
@@ -158,6 +183,16 @@ class Purchase(models.Model):
     quantity = models.IntegerField(verbose_name="Miqdori")
     price_per_unit = models.IntegerField(null=True, blank=True, verbose_name="Birlik narxi")
     total_cost = models.IntegerField(default=0, verbose_name="Jami narx")
+    usd_price_per_unit = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Dollar birlik narxi",
+    )
+    exchange_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Kurs (so'm)",
+    )
     purchase_date = models.DateField(auto_now_add=True)
     note = models.TextField(blank=True, null=True, verbose_name="Izoh")
     purchase_type = models.CharField(
@@ -183,21 +218,16 @@ class Purchase(models.Model):
         ordering = ['-purchase_date']
 
     def save(self, *args, **kwargs):
-        # Check if this is a new purchase (not an update)
         is_new = self.pk is None
-        # Calculate total_cost only if price_per_unit is provided
         if self.price_per_unit is not None:
             self.total_cost = self.quantity * self.price_per_unit
         else:
-            # For barter purchases, total_cost is 0 or can be set to a nominal value
             self.total_cost = 0
         super().save(*args, **kwargs)
-        # Add quantity to product stock for new purchases
         if is_new and self.product:
             self.product.quantity += self.quantity
             self.product.save()
-        # Subtract barter product quantity for new barter purchases
-        if is_new and self.purchase_type == 'barter' and self.barter_product:
+        if is_new and self.purchase_type == self.PurchaseTypeChoices.BARTER and self.barter_product:
             self.barter_product.quantity -= self.barter_quantity
             self.barter_product.save()
 
@@ -214,6 +244,16 @@ class SupplierPayment(models.Model):
 
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments', verbose_name="Firma")
     amount = models.IntegerField(verbose_name="Summa")
+    usd_amount = models.DecimalField(
+        max_digits=15, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Dollar miqdori",
+    )
+    exchange_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Kurs (so'm)",
+    )
     payment_type = models.CharField(max_length=20, choices=PaymentTypeChoices.choices, null=True, blank=True)
     paid_at = models.DateField(auto_now_add=True)
     comment = models.TextField(blank=True, null=True, verbose_name="Izoh")
@@ -242,4 +282,3 @@ class Expense(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.amount}"
-
