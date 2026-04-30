@@ -178,18 +178,18 @@
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                     </div>
                     <div id="purchaseUsdDiv" class="hidden space-y-2">
-                        <input type="number" id="purchaseUsdAmount" placeholder="Dollar miqdori"
+                        <input type="number" name="usd_price_per_unit" id="purchaseUsdAmount" step="0.01" placeholder="Dollar birlik narxi ($)"
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                             oninput="calculatePurchaseSum()">
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs text-gray-400 shrink-0">Kurs:</span>
-                            <input type="number" id="purchaseRate" value="12700"
+                            <input type="number" name="exchange_rate" id="purchaseRate" value="12700"
                                 class="w-20 p-1.5 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 transition-all"
                                 oninput="calculatePurchaseSum()">
                             <span class="text-xs text-gray-400">=</span>
-                            <input type="number" name="price_per_unit" id="purchaseConverted"
+                            <input type="number" id="purchaseConverted"
                                 class="flex-1 p-1.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-700 transition-all"
-                                readonly>
+                                placeholder="So'mda" readonly>
                         </div>
                     </div>
                 </div>
@@ -257,18 +257,18 @@
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all">
                     </div>
                     <div id="paymentUsdDiv" class="hidden space-y-2">
-                        <input type="number" id="paymentUsdAmount" placeholder="Dollar miqdori"
+                        <input type="number" name="usd_amount" id="paymentUsdAmount" step="0.01" placeholder="Dollar miqdori ($)"
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                             oninput="calculatePaymentSum()">
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs text-gray-400 shrink-0">Kurs:</span>
-                            <input type="number" id="paymentRate" value="12700"
+                            <input type="number" name="exchange_rate" id="paymentRate" value="12700"
                                 class="w-20 p-1.5 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-emerald-500 transition-all"
                                 oninput="calculatePaymentSum()">
                             <span class="text-xs text-gray-400">=</span>
                             <input type="number" id="paymentConverted"
                                 class="flex-1 p-1.5 border border-emerald-200 rounded-lg bg-emerald-50 text-sm font-bold text-emerald-700 transition-all"
-                                readonly>
+                                placeholder="So'mda" readonly>
                         </div>
                     </div>
                 </div>
@@ -327,9 +327,27 @@
                 <tr class="hover:bg-gray-50/80 transition-colors">
                     <td class="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{{ p.purchase_date|date:"d.m.Y" }}
                     </td>
-                    <td class="px-4 py-3 font-semibold text-gray-800">{{ p.product.name|default:"—" }}</td>
+                    <td class="px-4 py-3 font-semibold text-gray-800">
+                        {% if p.purchase_type == 'barter' %}
+                        <div class="flex flex-col">
+                            <span>{{ p.product.name|default:"—" }}</span>
+                            <span class="text-[10px] text-amber-600 font-semibold mt-0.5">🔄 Barter: {{ p.barter_quantity }} × {{ p.barter_product.name|default:"—" }}</span>
+                        </div>
+                        {% else %}
+                        {{ p.product.name|default:"—" }}
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-right text-gray-800">{{ p.quantity|format_currency }}</td>
-                    <td class="px-4 py-3 text-right text-gray-800">{{ p.price_per_unit|format_currency }}</td>
+                    <td class="px-4 py-3 text-right text-gray-800">
+                        {% if p.usd_price_per_unit and p.exchange_rate %}
+                        <div class="flex flex-col items-end leading-tight">
+                            <span class="text-[10px] text-gray-400">${{ p.usd_price_per_unit|floatformat:"-2" }} × {{ p.exchange_rate|format_currency }}</span>
+                            <span>{{ p.price_per_unit|format_currency }}</span>
+                        </div>
+                        {% else %}
+                        {{ p.price_per_unit|format_currency }}
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-right font-bold text-red-600 whitespace-nowrap">{{ p.total_cost|format_currency }} so'm</td>
                     <td class="px-4 py-3 text-gray-400 text-xs max-w-[120px] truncate">{{ p.note|default:"—" }}</td>
                     <td class="px-4 py-3 text-right">
@@ -399,7 +417,16 @@
                             {{ pay.get_payment_type_display|default:"—" }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-right font-bold text-emerald-600 whitespace-nowrap">{{ pay.amount|format_currency }} so'm</td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                        {% if pay.usd_amount and pay.exchange_rate %}
+                        <div class="flex flex-col items-end leading-tight">
+                            <span class="text-[10px] text-gray-400">${{ pay.usd_amount|floatformat:"-2" }} × {{ pay.exchange_rate|format_currency }}</span>
+                            <span class="font-bold text-emerald-600">{{ pay.amount|format_currency }} <span class="text-xs font-normal text-gray-400">so'm</span></span>
+                        </div>
+                        {% else %}
+                        <span class="font-bold text-emerald-600">{{ pay.amount|format_currency }} so'm</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-gray-400 text-xs max-w-[140px] truncate">{{ pay.comment|default:"—" }}
                     </td>
                     <td class="px-4 py-3 text-right">
@@ -472,22 +499,24 @@
         const sumDiv = document.getElementById('purchaseSumDiv');
         const usdDiv = document.getElementById('purchaseUsdDiv');
         const sumInput = document.getElementById('purchaseSumInput');
-        const usdInput = document.getElementById('purchaseConverted');
+        const usdInput = document.getElementById('purchaseUsdAmount');
 
         if (isUsd) {
             sumDiv.classList.add('hidden');
             usdDiv.classList.remove('hidden');
-            sumInput.removeAttribute('name');
             sumInput.removeAttribute('required');
-            usdInput.setAttribute('name', 'price_per_unit');
+            sumInput.value = '';
             usdInput.setAttribute('required', '');
         } else {
             sumDiv.classList.remove('hidden');
             usdDiv.classList.add('hidden');
-            usdInput.removeAttribute('name');
             usdInput.removeAttribute('required');
-            sumInput.setAttribute('name', 'price_per_unit');
-            sumInput.setAttribute('required', '');
+            usdInput.value = '';
+            document.getElementById('purchaseConverted').value = '';
+            const purchaseType = document.getElementById('purchaseType').value;
+            if (purchaseType !== 'barter') {
+                sumInput.setAttribute('required', '');
+            }
         }
     }
 
@@ -509,21 +538,20 @@
         const sumDiv = document.getElementById('paymentSumDiv');
         const usdDiv = document.getElementById('paymentUsdDiv');
         const sumInput = document.getElementById('paymentSumInput');
-        const usdInput = document.getElementById('paymentConverted');
+        const usdInput = document.getElementById('paymentUsdAmount');
 
         if (isUsd) {
             sumDiv.classList.add('hidden');
             usdDiv.classList.remove('hidden');
-            sumInput.removeAttribute('name');
             sumInput.removeAttribute('required');
-            usdInput.setAttribute('name', 'amount');
+            sumInput.value = '';
             usdInput.setAttribute('required', '');
         } else {
             sumDiv.classList.remove('hidden');
             usdDiv.classList.add('hidden');
-            usdInput.removeAttribute('name');
             usdInput.removeAttribute('required');
-            sumInput.setAttribute('name', 'amount');
+            usdInput.value = '';
+            document.getElementById('paymentConverted').value = '';
             sumInput.setAttribute('required', '');
         }
     }

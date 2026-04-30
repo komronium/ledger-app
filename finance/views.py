@@ -1,5 +1,6 @@
 import json
 from datetime import date
+from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -36,6 +37,18 @@ def _is_admin(user):
         return True
 
 
+def _to_decimal(value):
+    if value in (None, ''):
+        return None
+    cleaned = str(value).replace(',', '.').replace(' ', '').strip()
+    if not cleaned:
+        return None
+    try:
+        return Decimal(cleaned)
+    except (InvalidOperation, ValueError):
+        return None
+
+
 class AdminOnlyMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if not _is_admin(request.user):
@@ -60,22 +73,15 @@ class OrderView(LoginRequiredMixin, View):
     template_name = "order.html"
 
     def _get_payment_data(self, customer_id, date_from=None, date_to=None):
-        """Get payment data for a specific customer with optional date filtering"""
         payments = PaymentHistory.objects.filter(customer_id=customer_id)
-
-        # Apply date filtering if provided
         if date_from:
             payments = payments.filter(paid_at__date__gte=date_from)
         if date_to:
             payments = payments.filter(paid_at__date__lte=date_to)
-
         return payments.order_by("-paid_at")
 
     def _prepare_combined_data(self, orders, payments, customer):
-        """Combine order and payment data into a single list"""
         combined_data = []
-
-        # Add orders
         for order in orders:
             combined_data.append(
                 {
@@ -91,17 +97,18 @@ class OrderView(LoginRequiredMixin, View):
                 }
             )
 
-        # Add payments
         for payment in payments:
             combined_data.append(
                 {
                     "type": "payment",
                     "id": payment.id,
                     "customer": payment.customer,
-                    "product": "",
-                    "quantity": 0,
-                    "price_per_kg": 0,
+                    "product": payment.barter_product if payment.payment_type == 'barter' else "",
+                    "quantity": payment.barter_quantity if payment.payment_type == 'barter' else 0,
+                    "price_per_kg": (payment.barter_product.price if payment.barter_product else 0) if payment.payment_type == 'barter' else 0,
                     "paid_amount": payment.amount,
+                    "usd_amount": payment.usd_amount,
+                    "exchange_rate": payment.exchange_rate,
                     "order_date": payment.paid_at.date(),
                     "total_price": 0,
                     "remaining_debt": -payment.amount,
@@ -114,18 +121,14 @@ class OrderView(LoginRequiredMixin, View):
         return combined_data
 
     def _calculate_cumulative_debt(self, combined_data, customer):
-        """Calculate cumulative debt for each transaction"""
-        # Start with the customer's existing total debt
         cumulative_debt = customer.total_debt
 
-        # Calculate total debt from current filtered transactions first
         total_filtered_debt = sum(
             item["remaining_debt"] for item in combined_data if item["type"] == "order"
         ) - sum(
             item["paid_amount"] for item in combined_data if item["type"] == "payment"
         )
 
-        # Adjust cumulative debt to start from before these transactions
         cumulative_debt = cumulative_debt - total_filtered_debt
 
         for item in combined_data:
@@ -133,8 +136,6 @@ class OrderView(LoginRequiredMixin, View):
                 cumulative_debt += item["remaining_debt"]
             elif item["type"] == "payment":
                 cumulative_debt -= item["paid_amount"]
-
-            # Update remaining_debt to show cumulative value
             item["remaining_debt"] = cumulative_debt
 
         return combined_data
@@ -145,7 +146,6 @@ class OrderView(LoginRequiredMixin, View):
             query_params["date_from"] = query_params.get("date_from") or date.today()
             query_params["date_to"] = query_params.get("date_to") or date.today()
 
-        # Get filtered orders
         filtered_orders = OrderFilter(
             query_params,
             queryset=Order.objects.order_by("order_date").select_related(
@@ -165,12 +165,9 @@ class OrderView(LoginRequiredMixin, View):
             date_to = query_params.get("date_to")
             payments = self._get_payment_data(customer.id, date_from, date_to)
 
-            # Combine orders and payments
             combined_data = self._prepare_combined_data(
                 filtered_orders, payments, customer
             )
-
-            # Calculate cumulative debt for each transaction
             combined_data = self._calculate_cumulative_debt(combined_data, customer)
 
             total_quantity = sum(
@@ -185,10 +182,8 @@ class OrderView(LoginRequiredMixin, View):
                 if item["type"] == "payment"
             )
             total_debt = customer.total_debt
-
             order_data = combined_data
         else:
-            # Calculate order totals only
             order_aggs = filtered_orders.aggregate(
                 total_quantity=models.Sum("quantity"),
                 total_price=models.Sum("total_price"),
@@ -201,7 +196,6 @@ class OrderView(LoginRequiredMixin, View):
                 "total_debt": order_aggs["total_debt"] or 0,
             }
 
-            # Prepare order data
             order_data = [
                 {
                     "type": "order",
@@ -226,7 +220,6 @@ class OrderView(LoginRequiredMixin, View):
         import json as _json
         products_json = _json.dumps(products_list)
 
-        # Get any error messages from session
         errors = request.session.pop('order_errors', None)
 
         context = {
@@ -260,7 +253,6 @@ class OrderView(LoginRequiredMixin, View):
                 product = Product.objects.get(id=item.get('product_id'))
                 requested_quantity = int(item.get('quantity', 0))
 
-                # Check if enough quantity is available (including promo free items)
                 free_count = 0
                 if product.promo_buy and product.promo_free and product.promo_buy > 0:
                     free_count = (requested_quantity // product.promo_buy) * product.promo_free
@@ -285,7 +277,6 @@ class OrderView(LoginRequiredMixin, View):
                 continue
 
         if errors:
-            # Store error messages in session to display after redirect
             request.session['order_errors'] = errors
 
         return redirect("dashboard")
@@ -323,8 +314,13 @@ class OrderDeleteView(LoginRequiredMixin, View):
     def get(self, request, pk):
         order = get_object_or_404(Order, id=pk)
         customer = order.customer
-        customer.total_debt -= order.remaining_debt
-        customer.save()
+        if customer:
+            customer.total_debt -= order.remaining_debt
+            customer.save()
+        if order.product:
+            free_count = order._compute_promo_free(order.product, order.quantity)
+            order.product.quantity += (order.quantity + free_count)
+            order.product.save()
         order.delete()
         return redirect("dashboard")
 
@@ -378,7 +374,6 @@ class DebtView(AdminOnlyMixin, View):
     template_name = "debt.html"
 
     def get(self, request):
-        # Get year from query parameter, default to current year
         selected_year = request.GET.get("year", str(date.today().year))
 
         try:
@@ -388,7 +383,6 @@ class DebtView(AdminOnlyMixin, View):
 
         customers = Customer.objects.order_by("-total_debt")
 
-        # Get date filters, default to today
         date_from = request.GET.get("date_from", date.today().strftime("%Y-%m-%d"))
         date_to = request.GET.get("date_to", date.today().strftime("%Y-%m-%d"))
 
@@ -396,16 +390,16 @@ class DebtView(AdminOnlyMixin, View):
         query_params["date_from"] = date_from
         query_params["date_to"] = date_to
 
-        # Filter payments by year
         payments = PaymentFilter(
             query_params,
-            PaymentHistory.objects.filter(paid_at__year=selected_year).order_by(
-                "-paid_at"
-            ),
+            PaymentHistory.objects.filter(paid_at__year=selected_year)
+                .select_related('customer', 'barter_product')
+                .order_by("-paid_at"),
         ).qs
 
         context = {
             "customers": customers,
+            "products": Product.objects.all(),
             "payments": payments,
             "total_amount": sum(payment.amount for payment in payments),
             "today": date.today().strftime("%Y-%m-%d"),
@@ -431,6 +425,7 @@ class PaymentEditView(AdminOnlyMixin, View):
         return {
             "form": form,
             "payment": payment,
+            "products": Product.objects.all(),
             "payment_type_choices": PaymentHistory.PaymentTypeChoices.choices,
             "page": "debt",
         }
@@ -455,8 +450,11 @@ class PaymentDeleteView(AdminOnlyMixin, View):
     def get(self, request, pk):
         payment = get_object_or_404(PaymentHistory, id=pk)
         customer = payment.customer
-        customer.total_debt += payment.amount
+        customer.total_debt += int(payment.amount)
         customer.save()
+        if payment.payment_type == PaymentHistory.PaymentTypeChoices.BARTER and payment.barter_product:
+            payment.barter_product.quantity -= payment.barter_quantity
+            payment.barter_product.save()
         payment.delete()
         return redirect("debts")
 
@@ -494,7 +492,6 @@ class ProductView(AdminOnlyMixin, View):
             total_quantity=self.get_month_annotation(year, month)
         ))
 
-        # Per-order deduction including promo free items
         month_orders = Order.objects.filter(
             order_date__year=year,
             order_date__month=month
@@ -575,9 +572,8 @@ class StatisticsView(AdminOnlyMixin, View):
         total_quantity = sum(order.quantity for order in orders)
         total_orders = orders.count()
 
-        # Monthly breakdown
         monthly_data = []
-        max_monthly_revenue = 1  # avoid division by zero
+        max_monthly_revenue = 1
         for month_num in range(1, 13):
             month_orders = orders.filter(order_date__month=month_num)
             revenue = sum(o.total_price for o in month_orders)
@@ -593,11 +589,9 @@ class StatisticsView(AdminOnlyMixin, View):
                 "count": count,
             })
 
-        # Calculate percentage for bar chart
         for m in monthly_data:
             m["bar_pct"] = round((m["revenue"] / max_monthly_revenue) * 100) if max_monthly_revenue else 0
 
-        # Top products
         top_products = Product.objects.annotate(
             sold_quantity=models.Sum(
                 "orders__quantity",
@@ -609,10 +603,8 @@ class StatisticsView(AdminOnlyMixin, View):
             ),
         ).order_by("-sold_quantity")
 
-        # Top customers by debt
         top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[:5]
 
-        # Per-supplier stats: purchases, payments, debt, sales, profit
         supplier_stats = []
         total_supplier_debt = 0
         total_purchased_all = 0
@@ -623,7 +615,6 @@ class StatisticsView(AdminOnlyMixin, View):
 
             purchased = sum(p.total_cost for p in purchases)
             paid = sum(p.amount for p in payments)
-            # All-time debt (not year-filtered)
             all_purchases = sum(p.total_cost for p in supplier.purchases.all())
             all_payments = sum(p.amount for p in supplier.payments.all())
             debt = supplier.initial_debt + all_purchases - all_payments
@@ -737,7 +728,7 @@ class SupplierDetailView(AdminOnlyMixin, View):
 
     def get(self, request, pk):
         supplier = get_object_or_404(Supplier, pk=pk)
-        purchases = Purchase.objects.filter(supplier=supplier)
+        purchases = Purchase.objects.filter(supplier=supplier).select_related('product', 'barter_product')
         payments = SupplierPayment.objects.filter(supplier=supplier)
 
         total_purchased = sum(p.total_cost for p in purchases)
@@ -772,39 +763,82 @@ class SupplierDetailView(AdminOnlyMixin, View):
     def post(self, request, pk):
         supplier = get_object_or_404(Supplier, pk=pk)
         action = request.POST.get('action')
+
         if action == 'purchase':
             purchase_type = request.POST.get('purchase_type', 'cash')
             barter_product_id = request.POST.get('barter_product')
             barter_quantity = request.POST.get('barter_quantity', 0)
-            price_per_unit = request.POST.get('price_per_unit')
 
-            # Validate: price is required for non-barter purchases
-            if purchase_type != 'barter' and not price_per_unit:
-                return redirect('supplier_detail', pk=pk)
+            usd_amount = _to_decimal(request.POST.get('usd_price_per_unit'))
+            exchange_rate = _to_decimal(request.POST.get('exchange_rate'))
+            sum_price = request.POST.get('price_per_unit')
 
-            # Validate: barter fields are required for barter purchases
-            if purchase_type == 'barter' and (not barter_product_id or not barter_quantity):
-                return redirect('supplier_detail', pk=pk)
-
-            form = PurchaseForm(request.POST)
-            if form.is_valid():
-                purchase = form.save(commit=False)
-                purchase.supplier = supplier
-                purchase.purchase_type = purchase_type
-
-                if purchase_type == 'barter' and barter_product_id:
-                    purchase.barter_product_id = barter_product_id
-                    purchase.barter_quantity = int(barter_quantity) if barter_quantity else 0
-
-                purchase.save()
+            if purchase_type == 'barter':
+                if not barter_product_id or not barter_quantity:
+                    return redirect('supplier_detail', pk=pk)
             else:
-                print(form.errors)
+                has_usd = usd_amount and exchange_rate
+                if not sum_price and not has_usd:
+                    return redirect('supplier_detail', pk=pk)
+
+            try:
+                product_id = request.POST.get('product') or None
+                quantity = int(request.POST.get('quantity', 0))
+            except (ValueError, TypeError):
+                return redirect('supplier_detail', pk=pk)
+
+            purchase = Purchase(
+                supplier=supplier,
+                product_id=product_id,
+                quantity=quantity,
+                purchase_type=purchase_type,
+                note=request.POST.get('note', ''),
+            )
+
+            if purchase_type == 'barter':
+                purchase.price_per_unit = None
+                purchase.barter_product_id = barter_product_id
+                try:
+                    purchase.barter_quantity = int(barter_quantity)
+                except (ValueError, TypeError):
+                    purchase.barter_quantity = 0
+            else:
+                if usd_amount and exchange_rate:
+                    purchase.usd_price_per_unit = usd_amount
+                    purchase.exchange_rate = exchange_rate
+                    purchase.price_per_unit = int(usd_amount * exchange_rate)
+                else:
+                    try:
+                        purchase.price_per_unit = int(sum_price)
+                    except (ValueError, TypeError):
+                        purchase.price_per_unit = 0
+
+            purchase.save()
+
         elif action == 'payment':
-            form = SupplierPaymentForm(request.POST)
-            if form.is_valid():
-                payment = form.save(commit=False)
-                payment.supplier = supplier
-                payment.save()
+            usd_amount = _to_decimal(request.POST.get('usd_amount'))
+            exchange_rate = _to_decimal(request.POST.get('exchange_rate'))
+            sum_amount = request.POST.get('amount')
+
+            if usd_amount and exchange_rate:
+                final_amount = int(usd_amount * exchange_rate)
+            else:
+                try:
+                    final_amount = int(sum_amount)
+                except (ValueError, TypeError):
+                    return redirect('supplier_detail', pk=pk)
+
+            payment = SupplierPayment(
+                supplier=supplier,
+                amount=final_amount,
+                payment_type=request.POST.get('payment_type') or None,
+                comment=request.POST.get('comment', ''),
+            )
+            if usd_amount and exchange_rate:
+                payment.usd_amount = usd_amount
+                payment.exchange_rate = exchange_rate
+            payment.save()
+
         return redirect('supplier_detail', pk=pk)
 
 
@@ -812,6 +846,12 @@ class PurchaseDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         purchase = get_object_or_404(Purchase, pk=pk)
         supplier_pk = purchase.supplier.pk
+        if purchase.product:
+            purchase.product.quantity -= purchase.quantity
+            purchase.product.save()
+        if purchase.purchase_type == Purchase.PurchaseTypeChoices.BARTER and purchase.barter_product:
+            purchase.barter_product.quantity += purchase.barter_quantity
+            purchase.barter_product.save()
         purchase.delete()
         return redirect('supplier_detail', pk=supplier_pk)
 
