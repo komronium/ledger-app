@@ -13,140 +13,175 @@
     </div>
 
     <!-- Payment Form -->
-    <div class="bg-white border border-gray-200 rounded-xl mb-5 shadow-sm overflow-hidden">
-        <div class="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
-            <div class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    <div class="bg-white border border-gray-200 rounded-xl mb-4 shadow-sm overflow-visible">
+        <div class="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+            <div class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center shrink-0">
+                <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
-            <span class="text-sm font-bold text-gray-800">Qarz Qabul Qilish</span>
+            <span class="text-xs font-bold text-gray-800">Qarz Qabul Qilish</span>
         </div>
 
-        <form action="{% url 'debts' %}" method="POST" class="p-5">
+        <form action="{% url 'debts' %}" method="POST" class="p-5 space-y-5">
             {% csrf_token %}
 
-            <!-- Payment mode tabs -->
-            <div class="flex rounded-lg border border-gray-200 overflow-hidden mb-4 text-xs font-semibold w-full max-w-md">
-                <button type="button" id="modeMoneyBtn" onclick="setPaymentMode('money')"
-                    class="flex-1 py-2 bg-emerald-600 text-white transition-all">💰 Pul to'lovi</button>
-                <button type="button" id="modeBarterBtn" onclick="setPaymentMode('barter')"
-                    class="flex-1 py-2 bg-white text-gray-500 hover:bg-gray-50 transition-all">🔄 Barter (mahsulot)</button>
-            </div>
-
-            <input type="hidden" name="payment_mode" id="paymentModeHidden" value="money">
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                <!-- Mijoz -->
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Mijoz <span class="text-red-500">*</span></label>
+            <!-- Mijoz + Payment Mode row -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mijoz <span
+                            class="text-red-500">*</span></label>
                     <div class="relative">
                         <input value="{{ order.customer.name }}" type="text" required id="clientSearch"
-                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
-                            placeholder="Qidirish..." oninput="searchClients()" onfocus="showClientDropdown()"
+                            class="w-full form-input text-sm transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Mijoz qidirish..." oninput="searchClients()" onfocus="showClientDropdown()"
                             onblur="hideClientDropdown()">
                         <div id="clientDropdown"
-                            class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1">
+                            class="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1">
                         </div>
                     </div>
                     <input type="hidden" name="customer_id" id="selectedClientId" value="{{ order.customer.id }}">
-                    <div id="clientDebtInfo" class="hidden mt-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+                    <div id="clientDebtInfo"
+                        class="hidden mt-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-md">
                         <p id="clientDebtDetails" class="text-xs text-amber-700 font-semibold"></p>
                     </div>
                 </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">To'lov turi</label>
+                    <div class="flex rounded-lg border border-gray-200 overflow-hidden h-[40px]">
+                        <button type="button" id="modeMoneyBtn" onclick="setPaymentMode('money')"
+                            class="flex-1 text-sm font-semibold transition-all bg-emerald-50 border-r border-gray-200 text-emerald-700 flex items-center justify-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Pul
+                        </button>
+                        <button type="button" id="modeBarterBtn" onclick="setPaymentMode('barter')"
+                            class="flex-1 text-sm font-semibold transition-all bg-white text-gray-500 hover:text-amber-600 flex items-center justify-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            Barter
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="payment_mode" id="paymentModeHidden" value="money">
 
-                <!-- Money mode: To'lov summasi -->
-                <div id="moneyAmountWrap">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">To'lov summasi <span class="text-red-500">*</span></label>
-                    <div class="flex rounded-lg border border-gray-200 overflow-hidden mb-2 text-xs font-semibold">
-                        <button type="button" id="curSumBtn" onclick="setCurrency('sum')"
-                            class="flex-1 py-1.5 bg-blue-600 text-white transition-all">So'm</button>
-                        <button type="button" id="curUsdBtn" onclick="setCurrency('usd')"
-                            class="flex-1 py-1.5 bg-white text-gray-500 hover:bg-gray-50 transition-all">$ Dollar</button>
+            <!-- Money Payment Section -->
+            <div id="moneyPaymentSection">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                    <!-- Currency Toggle + Amount -->
+                    <div class="flex items-end gap-3">
+                        <div class="shrink-0">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Valyuta</label>
+                            <div class="flex rounded-lg border border-gray-300 overflow-hidden h-[42px]">
+                                <button type="button" id="curSumBtn" onclick="setCurrency('sum')"
+                                    class="flex-1 px-4 text-sm font-semibold transition-all bg-blue-600 text-white">So'm</button>
+                                <button type="button" id="curUsdBtn" onclick="setCurrency('usd')"
+                                    class="flex-1 px-4 text-sm font-semibold transition-all bg-white text-gray-600 hover:bg-gray-50">USD</button>
+                            </div>
+                        </div>
+                        <div id="sumInputDiv" class="flex-1">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Summa <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" name="payment_amount" id="paidDebtAmount" min="0"
+                                class="w-full form-input text-base transition-all focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-medium"
+                                placeholder="0">
+                        </div>
                     </div>
                     <input type="hidden" name="currency_type" id="currencyHidden" value="sum">
-                    <div id="sumInputDiv">
-                        <input type="number" name="payment_amount" id="paidDebtAmount" min="0"
-                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm transition-all"
-                            placeholder="So'mda">
-                    </div>
-                    <div id="usdInputDiv" class="hidden space-y-2">
-                        <input type="number" name="usd_amount" id="usdAmount" step="0.01"
-                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm transition-all"
-                            placeholder="Dollar miqdori ($)" oninput="calculateSum()">
-                        <div class="flex items-center gap-2">
-                            <div class="flex-1">
-                                <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Kurs</span>
+
+                    <!-- USD Payment -->
+                    <div id="usdInputDiv" class="hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Dollar miqdori <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" name="usd_amount" id="usdAmount" step="0.01"
+                                class="w-full form-input text-base transition-all focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-medium"
+                                placeholder="0.00" oninput="calculateSum()">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Kurs (1 USD = ?
+                                    so'm)</label>
                                 <input type="number" name="exchange_rate" id="exchangeRate"
-                                    class="w-full px-2.5 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                                    value="12700" oninput="calculateSum()">
+                                    class="w-full form-input text-sm" value="12700" oninput="calculateSum()">
                             </div>
-                            <div class="flex-1">
-                                <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">So'mda</span>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jami (so'm)</label>
                                 <input type="number" id="convertedSum"
-                                    class="w-full px-2.5 py-2 border border-emerald-200 rounded-lg bg-emerald-50 text-sm font-semibold text-emerald-800"
+                                    class="w-full form-input text-sm bg-emerald-50 border-emerald-300 font-bold text-emerald-700"
                                     placeholder="—" readonly>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Barter mode: Mahsulot va miqdor -->
-                <div id="barterMahsulotWrap" class="hidden">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Mijoz beradigan mahsulot <span class="text-red-500">*</span></label>
-                    <select name="barter_product_id" id="barterProductSelect"
-                        class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-sm transition-all"
-                        onchange="updateBarterPreview()">
-                        <option value="">— Tanlang —</option>
-                        {% for product in products %}
-                        <option value="{{ product.id }}" data-price="{{ product.price }}" data-name="{{ product.name }}">{{ product.name }} ({{ product.price|format_currency }} so'm)</option>
-                        {% endfor %}
-                    </select>
-                    <div class="text-[10px] text-gray-400 mt-1">Mahsulot omborga qo'shiladi va qarz mahsulot bahosicha kamayadi</div>
-                </div>
-                <div id="barterMiqdorWrap" class="hidden">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beradigan miqdor <span class="text-red-500">*</span></label>
-                    <input type="number" name="barter_quantity" id="barterQuantity" min="1"
-                        class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-sm transition-all"
-                        placeholder="0" oninput="updateBarterPreview()">
-                    <div id="barterPreview" class="hidden mt-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-100 rounded-md text-[11px] text-amber-700 font-semibold"></div>
-                </div>
-
-                <!-- To'lov turi (money mode) / izoh -->
-                <div>
-                    <div id="paymentTypeWrap">
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">To'lov turi</label>
-                        <select name="payment_type" id="debtPaymentType"
-                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all">
-                            <option value="">— Tanlang —</option>
-                            {% for choice in payment_type_choices %}
-                            {% if choice.0 != 'barter' %}
-                            <option value="{{ choice.0 }}">{{ choice.1 }}</option>
-                            {% endif %}
+            <!-- Step 3: Barter Payment Section -->
+            <div id="barterPaymentSection" class="hidden">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Beradigan mahsulot <span
+                                class="text-red-500">*</span></label>
+                        <select name="barter_product_id" id="barterProductSelect"
+                            class="w-full form-input text-sm transition-all" onchange="updateBarterPreview()">
+                            <option value="">Mahsulot tanlang</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-price="{{ product.price }}"
+                                data-name="{{ product.name }}">{{ product.name }} — {{ product.price|format_currency }}
+                                so'm</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mt-3">
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Izoh <span class="text-gray-400 font-normal">(ixtiyoriy)</span></label>
-                        <input type="text" name="comment"
-                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
-                            placeholder="Qisqa izoh...">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Miqdor <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" name="barter_quantity" id="barterQuantity" min="1"
+                                class="w-full form-input text-base transition-all font-medium" placeholder="0"
+                                oninput="updateBarterPreview()">
+                        </div>
+                        <div id="barterPreview"
+                            class="hidden self-end px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-800 font-semibold">
+                        </div>
                     </div>
                 </div>
-
-                <!-- Submit -->
-                <div class="flex items-end">
-                    <button type="submit"
-                        class="w-full gradient-bg text-white py-2.5 px-4 rounded-lg font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Qabul qilish
-                    </button>
-                </div>
-
             </div>
+
+            <!-- Common Details -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div id="paymentTypeWrap">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">To'lov turi</label>
+                    <select name="payment_type" id="debtPaymentType" class="w-full form-input text-sm transition-all">
+                        <option value="">To'lov turini tanlang</option>
+                        {% for choice in payment_type_choices %}
+                        {% if choice.0 != 'barter' %}
+                        <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Izoh <span
+                            class="text-gray-400 font-normal">(ixtiyoriy)</span></label>
+                    <input type="text" name="comment" class="w-full form-input text-sm transition-all"
+                        placeholder="Izoh qoldiring...">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-5 rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+                Qabul qilish
+            </button>
         </form>
     </div>
 
@@ -169,7 +204,8 @@
             <button onclick="generatePDF()"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Hisobot
             </button>
@@ -182,10 +218,10 @@
                 <div class="relative">
                     <input type="text" id="filterClientNameSearch"
                         class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
-                        placeholder="Qidirish..." oninput="searchFilterClients()"
-                        onfocus="showFilterClientDropdown()" onblur="hideFilterClientDropdown()">
+                        placeholder="Qidirish..." oninput="searchFilterClients()" onfocus="showFilterClientDropdown()"
+                        onblur="hideFilterClientDropdown()">
                     <div id="filterClientDropdown"
-                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1">
+                        class="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1">
                     </div>
                 </div>
                 <input oninput="setFilter()" type="hidden" id="selectedFilterClientId" name="customer_id" value="">
@@ -207,12 +243,24 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50/60 border-b border-gray-100">
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Sana</th>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Mijoz</th>
-                        <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Summa</th>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Turi</th>
-                        <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Izoh</th>
-                        <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Amallar</th>
+                        <th
+                            class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                            Sana</th>
+                        <th
+                            class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                            Mijoz</th>
+                        <th
+                            class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                            Summa</th>
+                        <th
+                            class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                            Turi</th>
+                        <th
+                            class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">
+                            Izoh</th>
+                        <th
+                            class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                            Amallar</th>
                     </tr>
                 </thead>
                 <tbody id="debtPaymentsTable" class="divide-y divide-gray-100">
@@ -225,7 +273,8 @@
                         </td>
                         <td class="px-5 py-3.5">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-[10px] font-bold text-emerald-600 shrink-0">
+                                <div
+                                    class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-[10px] font-bold text-emerald-600 shrink-0">
                                     {{ payment.customer.name|slice:":1"|upper }}
                                 </div>
                                 <span class="font-semibold text-gray-800 text-xs">{{ payment.customer.name }}</span>
@@ -235,12 +284,15 @@
                             {% if payment.usd_amount and payment.exchange_rate %}
                             <div class="flex flex-col items-end leading-tight">
                                 <span class="text-[11px] text-gray-400">${{ payment.usd_amount|floatformat:"-2" }} × {{ payment.exchange_rate|format_currency }}</span>
-                                <span class="font-bold text-emerald-600">{{ payment.amount|format_currency }} <span class="text-xs font-normal text-gray-400">so'm</span></span>
+                                <span class="font-bold text-emerald-600">{{ payment.amount|format_currency }} <span
+                                        class="text-xs font-normal text-gray-400">so'm</span></span>
                             </div>
                             {% elif payment.payment_type == 'barter' and payment.barter_product %}
                             <div class="flex flex-col items-end leading-tight">
-                                <span class="text-[11px] text-amber-600 font-semibold">{{ payment.barter_quantity }} × {{ payment.barter_product.name }}</span>
-                                <span class="font-bold text-amber-600">{{ payment.amount|format_currency }} <span class="text-xs font-normal text-gray-400">so'm</span></span>
+                                <span class="text-[11px] text-amber-600 font-semibold">{{ payment.barter_quantity }} ×
+                                    {{ payment.barter_product.name }}</span>
+                                <span class="font-bold text-amber-600">{{ payment.amount|format_currency }} <span
+                                        class="text-xs font-normal text-gray-400">so'm</span></span>
                             </div>
                             {% else %}
                             <span class="font-bold text-emerald-600">{{ payment.amount|format_currency }}</span>
@@ -249,11 +301,13 @@
                         </td>
                         <td class="px-5 py-3.5 hidden sm:table-cell">
                             {% if payment.payment_type == 'barter' %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">
-                                🔄 Barter
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">
+                                Barter
                             </span>
                             {% elif payment.get_payment_type_display %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
                                 {{ payment.get_payment_type_display }}
                             </span>
                             {% else %}
@@ -262,26 +316,27 @@
                         </td>
                         <td class="px-5 py-3.5 text-xs text-gray-500 hidden md:table-cell">
                             {% if payment.comment %}
-                            <span class="max-w-[180px] truncate block" title="{{ payment.comment }}">{{ payment.comment }}</span>
+                            <span class="max-w-[180px] truncate block" title="{{ payment.comment }}">{{ payment.comment
+                                }}</span>
                             {% else %}
                             <span class="text-gray-300">—</span>
                             {% endif %}
                         </td>
                         <td class="px-5 py-3.5 text-right">
                             <div class="flex items-center justify-end gap-1">
-                                <a href="{% url 'payment_edit' payment.id %}"
-                                    title="Tahrirlash"
+                                <a href="{% url 'payment_edit' payment.id %}" title="Tahrirlash"
                                     class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                 </a>
                                 <a href="{% url 'payment_delete' payment.id %}"
-                                    onclick="return confirm('Rostan ham o\'chirmoqchimisiz?')"
-                                    title="O'chirish"
+                                    onclick="return confirm('Rostan ham o\'chirmoqchimisiz?')" title="O'chirish"
                                     class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </a>
                             </div>
@@ -289,7 +344,8 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-5 py-14 text-center text-sm text-gray-400">Hozircha to'lovlar yo'q</td>
+                        <td colspan="6" class="px-5 py-14 text-center text-sm text-gray-400">Hozircha to'lovlar yo'q
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -297,8 +353,10 @@
                 <tfoot>
                     <tr class="border-t border-gray-200 bg-gray-50">
                         <td colspan="2" class="px-5 py-3 text-[11px] font-bold text-gray-500 uppercase">Jami</td>
-                        <td class="px-5 py-3 text-right font-black text-emerald-600 whitespace-nowrap" id="totalDebtPayments">
-                            {{ total_amount|format_currency }} <span class="text-[11px] font-normal text-gray-400">so'm</span>
+                        <td class="px-5 py-3 text-right font-black text-emerald-600 whitespace-nowrap"
+                            id="totalDebtPayments">
+                            {{ total_amount|format_currency }} <span
+                                class="text-[11px] font-normal text-gray-400">so'm</span>
                         </td>
                         <td colspan="3"></td>
                     </tr>
@@ -315,8 +373,8 @@
         document.getElementById('currencyHidden').value = type;
         const sumBtn = document.getElementById('curSumBtn');
         const usdBtn = document.getElementById('curUsdBtn');
-        sumBtn.className = 'flex-1 py-1.5 transition-all ' + (isUsd ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-blue-600 text-white');
-        usdBtn.className = 'flex-1 py-1.5 transition-all ' + (isUsd ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50');
+        sumBtn.className = 'flex-1 px-4 text-sm font-semibold transition-all ' + (isUsd ? 'bg-white text-gray-600 hover:bg-gray-50' : 'bg-blue-600 text-white');
+        usdBtn.className = 'flex-1 px-4 text-sm font-semibold transition-all ' + (isUsd ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50');
 
         const sumDiv = document.getElementById('sumInputDiv');
         const usdDiv = document.getElementById('usdInputDiv');
@@ -349,56 +407,28 @@
         const isBarter = (mode === 'barter');
         document.getElementById('paymentModeHidden').value = mode;
 
+        // Update button styles
         const moneyBtn = document.getElementById('modeMoneyBtn');
         const barterBtn = document.getElementById('modeBarterBtn');
-        moneyBtn.className = 'flex-1 py-2 transition-all ' + (isBarter ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-emerald-600 text-white');
-        barterBtn.className = 'flex-1 py-2 transition-all ' + (isBarter ? 'bg-amber-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50');
-
-        const moneyWrap = document.getElementById('moneyAmountWrap');
-        const barterMahsulot = document.getElementById('barterMahsulotWrap');
-        const barterMiqdor = document.getElementById('barterMiqdorWrap');
-        const paymentTypeWrap = document.getElementById('paymentTypeWrap');
-        const paymentTypeSelect = document.getElementById('debtPaymentType');
-        const sumInput = document.getElementById('paidDebtAmount');
-        const usdInput = document.getElementById('usdAmount');
-        const barterProduct = document.getElementById('barterProductSelect');
-        const barterQuantity = document.getElementById('barterQuantity');
 
         if (isBarter) {
-            moneyWrap.classList.add('hidden');
-            barterMahsulot.classList.remove('hidden');
-            barterMiqdor.classList.remove('hidden');
-            paymentTypeWrap.classList.add('hidden');
-            sumInput.removeAttribute('name');
-            sumInput.removeAttribute('required');
-            usdInput.removeAttribute('name');
-            usdInput.removeAttribute('required');
-            paymentTypeSelect.value = 'barter';
-            paymentTypeSelect.removeAttribute('name');
-            const hidden = document.getElementById('barterPaymentTypeHidden') || (() => {
-                const i = document.createElement('input');
-                i.type = 'hidden';
-                i.name = 'payment_type';
-                i.id = 'barterPaymentTypeHidden';
-                i.value = 'barter';
-                paymentTypeWrap.parentElement.appendChild(i);
-                return i;
-            })();
-            hidden.value = 'barter';
-            barterProduct.setAttribute('required', '');
-            barterQuantity.setAttribute('required', '');
+            moneyBtn.className = 'flex-1 text-sm font-semibold transition-all bg-white border-r border-gray-200 text-gray-500 hover:text-emerald-600 flex items-center justify-center gap-1.5';
+            barterBtn.className = 'flex-1 text-sm font-semibold transition-all bg-amber-50 border-r border-gray-200 text-amber-700 flex items-center justify-center gap-1.5';
         } else {
-            moneyWrap.classList.remove('hidden');
-            barterMahsulot.classList.add('hidden');
-            barterMiqdor.classList.add('hidden');
-            paymentTypeWrap.classList.remove('hidden');
-            paymentTypeSelect.setAttribute('name', 'payment_type');
-            const hidden = document.getElementById('barterPaymentTypeHidden');
-            if (hidden) hidden.remove();
-            barterProduct.removeAttribute('required');
-            barterQuantity.removeAttribute('required');
-            const cur = document.getElementById('currencyHidden').value;
-            setCurrency(cur || 'sum');
+            moneyBtn.className = 'flex-1 text-sm font-semibold transition-all bg-emerald-50 border-r border-gray-200 text-emerald-700 flex items-center justify-center gap-1.5';
+            barterBtn.className = 'flex-1 text-sm font-semibold transition-all bg-white text-gray-500 hover:text-amber-600 flex items-center justify-center gap-1.5';
+        }
+
+        // Show/hide sections
+        const moneySection = document.getElementById('moneyPaymentSection');
+        const barterSection = document.getElementById('barterPaymentSection');
+
+        if (isBarter) {
+            moneySection.classList.add('hidden');
+            barterSection.classList.remove('hidden');
+        } else {
+            moneySection.classList.remove('hidden');
+            barterSection.classList.add('hidden');
         }
     }
 
@@ -553,8 +583,10 @@
         const opt = {
             margin: 0, filename: 'qarz-tolovlari.pdf',
             image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0,
-                windowWidth: document.body.scrollWidth, windowHeight: document.body.scrollHeight },
+            html2canvas: {
+                scale: 2, useCORS: true, scrollY: 0,
+                windowWidth: document.body.scrollWidth, windowHeight: document.body.scrollHeight
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
         html2pdf().set(opt).from(document.getElementById('invoice')).save();
@@ -562,8 +594,8 @@
 
     let clients = [
         {% for customer in customers %}
-        { 'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}', 'debt': '{{ customer.total_debt|default:0 }}' },
-        {% endfor %}
+    { 'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}', 'debt': '{{ customer.total_debt|default:0 }}' },
+    {% endfor %}
     ];
 </script>
 

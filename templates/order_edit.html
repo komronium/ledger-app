@@ -204,16 +204,8 @@
         }
         filtered.forEach(p => {
             const el = document.createElement('div');
-            const qtyClass = (p.quantity || 0) <= 0 ? 'text-red-500' : 'text-gray-500';
             el.className = 'px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0';
-            el.innerHTML = `
-                <div class="flex items-center justify-between gap-2">
-                    <div class="min-w-0 flex-1">
-                        <div class="font-semibold text-gray-800 text-sm truncate">${p.name}</div>
-                        <div class="text-xs ${qtyClass}">Mavjud: ${Number(p.quantity || 0).toLocaleString('uz-UZ')}</div>
-                    </div>
-                    <div class="text-xs font-bold text-blue-600 whitespace-nowrap">${Number(p.price || 0).toLocaleString('uz-UZ')} so'm</div>
-                </div>`;
+            el.innerHTML = `<div class="font-semibold text-gray-800 text-sm">${p.name}</div>`;
             el.onmousedown = (ev) => { ev.preventDefault(); selectProduct(p); };
             dropdown.appendChild(el);
         });

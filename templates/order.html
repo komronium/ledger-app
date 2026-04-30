@@ -15,7 +15,7 @@
     {% endif %}
 
     <!-- Add New Orders -->
-    <div class="bg-white border border-gray-200 rounded-2xl mb-5 shadow-sm overflow-hidden">
+    <div class="bg-white border border-gray-200 rounded-2xl mb-5 shadow-sm overflow-visible">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
             <div class="w-1.5 h-5 bg-blue-500 rounded-full"></div>
             <h2 class="text-sm font-bold text-gray-800">Yangi Buyurtma</h2>
@@ -34,7 +34,7 @@
                             placeholder="Qidirish..." oninput="searchClients()" onfocus="showClientDropdown()"
                             onblur="hideClientDropdown()">
                         <div id="clientDropdown"
-                            class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1">
+                            class="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1">
                         </div>
                     </div>
                     <input type="hidden" id="selectedClientId" value="">
@@ -46,7 +46,7 @@
                             class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
                             placeholder="Qidirish..." oninput="searchProducts()" onfocus="showProductDropdown()" onblur="hideProductDropdown()">
                         <div id="productDropdown"
-                            class="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden top-full mt-1">
+                            class="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden top-full mt-1">
                         </div>
                     </div>
                     <input type="hidden" id="selectedProductId" value="">
@@ -712,19 +712,8 @@
         }
         list.forEach(p => {
             const el = document.createElement('div');
-            const promoTag = (p.promo_buy && p.promo_free)
-                ? `<span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-bold">${p.promo_buy}+${p.promo_free}</span>`
-                : '';
-            const qtyClass = (p.quantity || 0) <= 0 ? 'text-red-500' : 'text-gray-500';
             el.className = 'px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0';
-            el.innerHTML = `
-                <div class="flex items-center justify-between gap-2">
-                    <div class="min-w-0 flex-1">
-                        <div class="font-semibold text-gray-800 text-sm truncate">${p.name}${promoTag}</div>
-                        <div class="text-xs ${qtyClass}">Mavjud: <span class="font-medium">${Number(p.quantity || 0).toLocaleString('uz-UZ')}</span></div>
-                    </div>
-                    <div class="text-xs font-bold text-blue-600 whitespace-nowrap">${Number(p.price || 0).toLocaleString('uz-UZ')} so'm</div>
-                </div>`;
+            el.innerHTML = `<div class="font-semibold text-gray-800 text-sm">${p.name}</div>`;
             el.onmousedown = (ev) => { ev.preventDefault(); selectProduct(p); };
             dropdown.appendChild(el);
         });
