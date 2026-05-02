@@ -8,13 +8,53 @@ from aiogram import Router, types, F
 from aiogram.filters import Filter
 from aiogram.types import ReplyKeyboardRemove
 
-from bot.services import CustomerService, PDFGenerator
+from bot.services import CustomerService, SupplierService, PDFGenerator
 from bot.config.settings import get_settings
 
 
 logger = logging.getLogger(__name__)
 
 phone_router = Router()
+
+
+async def _send_supplier_pdf(message: types.Message, phone: str, status_msg=None):
+    """Look up a supplier by phone and send a PDF report. Returns True if found."""
+    supplier = await SupplierService.get_supplier_by_phone(phone)
+    if not supplier:
+        return False
+
+    report = await SupplierService.get_supplier_report(supplier['id'])
+
+    settings = get_settings()
+    pdf_generator = PDFGenerator(settings.PDF_TEMP_DIR)
+    pdf_path = pdf_generator.generate_supplier_report(report)
+
+    if status_msg is not None:
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass
+
+    try:
+        await message.answer_document(
+            types.FSInputFile(pdf_path),
+            caption=f"🏢 {supplier['name']}\n{datetime.now().strftime('%Y-%m-%d')}",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+    finally:
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            logger.info(f"Deleted temp PDF: {pdf_path}")
+
+    debt = report.get('debt', 0)
+    if debt > 0:
+        await message.answer(
+            f"⚠️ <b>Qarz:</b> {debt:,} so'm",
+            parse_mode="HTML",
+        )
+    else:
+        await message.answer("✅ Qarz yo'q", parse_mode="HTML")
+    return True
 
 
 class ContactFilter(Filter):
@@ -48,8 +88,13 @@ async def handle_contact(message: types.Message):
         
         # Get customer data (async call)
         customer = await CustomerService.get_customer_by_phone(phone)
-        
+
         if not customer:
+            # Fall back to supplier lookup
+            sent = await _send_supplier_pdf(message, phone, status_msg=status_msg)
+            if sent:
+                return
+
             await status_msg.delete()
             await message.answer(
                 f"❌ Telefon raqami <b>{phone}</b> bizning bazada topilmadi.\n\n"
@@ -57,7 +102,7 @@ async def handle_contact(message: types.Message):
                 parse_mode="HTML",
                 reply_markup=ReplyKeyboardRemove()
             )
-            logger.warning(f"Customer not found for phone: {phone}")
+            logger.warning(f"Customer/supplier not found for phone: {phone}")
             return
         
         # Get combined data with cumulative debt (async call)
@@ -157,15 +202,19 @@ async def handle_text(message: types.Message):
     try:
         # Get customer data (async call)
         customer = await CustomerService.get_customer_by_phone(phone_clean)
-        
+
         if not customer:
+            sent = await _send_supplier_pdf(message, phone_clean, status_msg=status_msg)
+            if sent:
+                return
+
             await status_msg.delete()
             await message.answer(
                 f"❌ Telefon raqami <b>{phone_clean}</b> bizning bazada topilmadi.\n\n"
                 "Iltimos, admin bilan bog'laning.",
                 parse_mode="HTML"
             )
-            logger.warning(f"Customer not found for phone: {phone_clean}")
+            logger.warning(f"Customer/supplier not found for phone: {phone_clean}")
             return
         
         # Get combined data with cumulative debt (async call)

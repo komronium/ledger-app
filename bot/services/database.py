@@ -22,7 +22,7 @@ def setup_django():
 # Setup Django on import
 setup_django()
 
-from finance.models import Customer, Order, PaymentHistory
+from finance.models import Customer, Order, PaymentHistory, Supplier, Purchase, SupplierPayment
 
 
 class CustomerService:
@@ -203,7 +203,116 @@ class CustomerService:
                 cumulative_debt += item['remaining_debt']
             elif item['type'] == 'payment':
                 cumulative_debt -= item['paid_amount']
-            
+
             item['cumulative_debt'] = cumulative_debt
-        
+
         return combined_data, customer
+
+
+class SupplierService:
+    """Service for accessing supplier data"""
+
+    @staticmethod
+    def _normalize_phone(phone: str) -> str:
+        return (phone or '').strip().replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+
+    @staticmethod
+    @sync_to_async
+    def get_supplier_by_phone(phone: str) -> Optional[Dict]:
+        """Find a supplier by phone number, tolerant of formatting."""
+        normalized = SupplierService._normalize_phone(phone)
+        candidates = [phone, normalized]
+        if normalized.startswith('998') and len(normalized) == 12:
+            candidates.append(normalized[3:])
+        elif len(normalized) == 9:
+            candidates.append('998' + normalized)
+
+        supplier = None
+        for candidate in candidates:
+            if not candidate:
+                continue
+            supplier = Supplier.objects.filter(phone=candidate).first()
+            if supplier:
+                break
+        if not supplier:
+            # Last resort: substring match (handles stored values with spaces / dashes)
+            for s in Supplier.objects.exclude(phone__isnull=True).exclude(phone__exact=''):
+                if SupplierService._normalize_phone(s.phone) == normalized:
+                    supplier = s
+                    break
+        if not supplier:
+            return None
+        return {
+            'id': supplier.id,
+            'name': supplier.name,
+            'phone': supplier.phone or '',
+            'address': supplier.address or '',
+            'initial_debt': supplier.initial_debt,
+        }
+
+    @staticmethod
+    @sync_to_async
+    def get_supplier_report(supplier_id: int) -> Dict:
+        """Build a combined supplier report with purchases, payments, debt."""
+        supplier = Supplier.objects.get(id=supplier_id)
+        purchases = Purchase.objects.filter(supplier=supplier).select_related('product', 'barter_product').order_by('purchase_date')
+        payments = SupplierPayment.objects.filter(supplier=supplier).select_related('barter_product').order_by('paid_at')
+
+        purchase_type_dict = dict(Purchase.PurchaseTypeChoices.choices)
+        payment_type_dict = dict(SupplierPayment.PaymentTypeChoices.choices)
+
+        rows = []
+        for p in purchases:
+            rows.append({
+                'type': 'purchase',
+                'date': p.purchase_date.strftime('%Y-%m-%d'),
+                'description': (p.product.name if p.product else '—'),
+                'kind': purchase_type_dict.get(p.purchase_type, p.purchase_type),
+                'quantity': p.quantity,
+                'price_per_unit': p.price_per_unit or 0,
+                'amount': p.total_cost,
+                'note': p.note or '',
+            })
+        for pay in payments:
+            extra = ''
+            if pay.payment_type == SupplierPayment.PaymentTypeChoices.BARTER and pay.barter_product:
+                extra = f"{pay.barter_product.name} x {pay.barter_quantity}"
+            rows.append({
+                'type': 'payment',
+                'date': pay.paid_at.strftime('%Y-%m-%d'),
+                'description': extra or (pay.comment or '—'),
+                'kind': payment_type_dict.get(pay.payment_type, pay.payment_type or '—'),
+                'quantity': 0,
+                'price_per_unit': 0,
+                'amount': pay.amount,
+                'note': pay.comment or '',
+            })
+
+        rows.sort(key=lambda r: r['date'])
+
+        total_purchased = sum(r['amount'] for r in rows if r['type'] == 'purchase')
+        total_paid = sum(r['amount'] for r in rows if r['type'] == 'payment')
+        debt = supplier.initial_debt + total_purchased - total_paid
+
+        # Cumulative debt walk
+        running = supplier.initial_debt
+        for r in rows:
+            if r['type'] == 'purchase':
+                running += r['amount']
+            else:
+                running -= r['amount']
+            r['cumulative_debt'] = running
+
+        return {
+            'supplier': {
+                'id': supplier.id,
+                'name': supplier.name,
+                'phone': supplier.phone or '',
+                'address': supplier.address or '',
+                'initial_debt': supplier.initial_debt,
+            },
+            'rows': rows,
+            'total_purchased': total_purchased,
+            'total_paid': total_paid,
+            'debt': debt,
+        }

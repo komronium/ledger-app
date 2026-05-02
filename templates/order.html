@@ -56,7 +56,7 @@
                     <input type="hidden" id="selectedProductPromoBuy" value="">
                     <input type="hidden" id="selectedProductPromoFree" value="">
                     <!-- Floating tooltip -->
-                    <div id="productTooltip" class="hidden absolute left-0 top-full mt-1 z-20 flex flex-col gap-0.5 pointer-events-none">
+                    <div id="productTooltip" class="hidden absolute left-0 -bottom-1 translate-y-full z-20 flex flex-col gap-0.5 pointer-events-none">
                         <div id="quantityWarning" class="hidden text-xs bg-white border border-gray-200 shadow-sm rounded-md px-2.5 py-1 text-gray-500 whitespace-nowrap"></div>
                         <div id="promoInfo" class="hidden text-xs bg-orange-50 border border-orange-200 shadow-sm rounded-md px-2.5 py-1 text-orange-700 font-semibold whitespace-nowrap"></div>
                     </div>
@@ -250,13 +250,14 @@
                 </div>
                 <input oninput="setFilter()" type="hidden" id="selectedFilterClientId" name="customer_id" value="">
             </div>
-            <select onchange="setFilter()" id="filterProduct"
-                class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
-                <option value="">Barcha mahsulotlar</option>
-                {% for product in products %}
-                <option value="{{ product.id }}" {% if request.GET.product_id|stringformat:"s" == product.id|stringformat:"s" %}selected{% endif %}>{{ product.name }}</option>
-                {% endfor %}
-            </select>
+            <div class="relative">
+                <input type="text" id="filterProductSearch" autocomplete="off"
+                    class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                    placeholder="Mahsulot bo'yicha..." oninput="searchFilterProducts()" onfocus="showFilterProductDropdown()" onblur="hideFilterProductDropdown()"
+                    {% for product in products %}{% if request.GET.product_id|stringformat:"s" == product.id|stringformat:"s" %}value="{{ product.name }}"{% endif %}{% endfor %}>
+                <input type="hidden" id="filterProduct" value="{{ request.GET.product_id|default:'' }}">
+                <div id="filterProductDropdown" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+            </div>
             <input type="date" onchange="setFilter()"
                 value="{% if request.GET.date_from %}{{ request.GET.date_from }}{% else %}{{ today }}{% endif %}"
                 id="filterDateFrom"
@@ -362,6 +363,12 @@
 
 <script>
     let pendingOrders = [];
+    let allProducts = [
+        {% for product in products %}
+        {id: '{{ product.id }}', name: '{{ product.name|escapejs }}', price: {{ product.price }}, quantity: {{ product.quantity }}, promo_buy: '{{ product.promo_buy|default:"" }}', promo_free: '{{ product.promo_free|default:"" }}'},
+        {% endfor %}
+    ];
+    let selectedProduct = null;
 
     function syncTooltipVisibility() {
         const warn = document.getElementById('quantityWarning');
@@ -371,25 +378,87 @@
         tooltip.classList.toggle('hidden', !anyVisible);
     }
 
+<<<<<<< HEAD
     function autoFillPrice() {
         const price = document.getElementById('selectedProductPrice').value || '';
         const qty = document.getElementById('selectedProductQty').value || '0';
         if (price) {
             document.getElementById('price').value = price;
+=======
+    function searchProducts() {
+        const term = document.getElementById('productSearchInput').value.toLowerCase().trim();
+        const dropdown = document.getElementById('productDropdown');
+        document.getElementById('productSelect').value = '';
+        selectedProduct = null;
+        const filtered = term ? allProducts.filter(p => p.name.toLowerCase().includes(term)) : allProducts;
+        renderProductDropdown(filtered.slice(0, 50));
+        dropdown.classList.remove('hidden');
+    }
+
+    function renderProductDropdown(items) {
+        const dropdown = document.getElementById('productDropdown');
+        if (!items.length) {
+            dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mahsulot topilmadi</div>';
+            return;
+        }
+        dropdown.innerHTML = items.map(p => `
+            <div class="p-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100"
+                 onmousedown="selectProductOpt('${p.id}')">
+                <div class="font-medium text-gray-800">${p.name}</div>
+                <div class="text-xs text-gray-500">Mavjud: ${p.quantity} · ${Number(p.price).toLocaleString('uz-UZ')} so'm</div>
+            </div>`).join('');
+    }
+
+    function selectProductOpt(id) {
+        const p = allProducts.find(x => String(x.id) === String(id));
+        if (!p) return;
+        selectedProduct = p;
+        document.getElementById('productSearchInput').value = p.name + ' (' + p.quantity + ')';
+        document.getElementById('productSelect').value = p.id;
+        document.getElementById('productDropdown').classList.add('hidden');
+        autoFillFromSelection();
+    }
+
+    function showProductDropdown() {
+        renderProductDropdown(allProducts.slice(0, 50));
+        document.getElementById('productDropdown').classList.remove('hidden');
+    }
+
+    function hideProductDropdown() {
+        setTimeout(() => document.getElementById('productDropdown').classList.add('hidden'), 200);
+    }
+
+    function autoFillFromSelection() {
+        const p = selectedProduct;
+        const warningDiv = document.getElementById('quantityWarning');
+        const promoDiv = document.getElementById('promoInfo');
+        if (!p) {
+            warningDiv.classList.add('hidden');
+            promoDiv.classList.add('hidden');
+            syncTooltipVisibility();
+            return;
+        }
+        if (p.price) {
+            document.getElementById('price').value = p.price;
+>>>>>>> 86becdb (...)
             calculateTotal();
         }
-        const warningDiv = document.getElementById('quantityWarning');
-        if (qty && parseInt(qty) > 0) {
-            warningDiv.textContent = 'Mavjud: ' + parseInt(qty).toLocaleString();
+        if (p.quantity > 0) {
+            warningDiv.textContent = 'Mavjud: ' + parseInt(p.quantity).toLocaleString();
             warningDiv.classList.remove('hidden');
         } else {
             warningDiv.classList.add('hidden');
         }
+<<<<<<< HEAD
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
             promoDiv.textContent = 'Aksiya: ' + promoBuy + '+' + promoFree + ' (har ' + promoBuy + ' tadan ' + promoFree + ' ta bepul)';
+=======
+        if (p.promo_buy && p.promo_free) {
+            promoDiv.textContent = 'Aksiya: ' + p.promo_buy + '+' + p.promo_free + ' (har ' + p.promo_buy + ' tadan ' + p.promo_free + ' ta bepul)';
+>>>>>>> 86becdb (...)
             promoDiv.classList.remove('hidden');
         } else {
             promoDiv.classList.add('hidden');
@@ -404,8 +473,13 @@
     }
 
     function updatePromoPreview() {
+<<<<<<< HEAD
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
+=======
+        const promoBuy = selectedProduct ? selectedProduct.promo_buy : '';
+        const promoFree = selectedProduct ? selectedProduct.promo_free : '';
+>>>>>>> 86becdb (...)
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
@@ -435,10 +509,17 @@
     }
 
     function validateQuantity() {
+<<<<<<< HEAD
         const availableQty = parseInt(document.getElementById('selectedProductQty').value || 0);
         const requestedQty = parseInt(document.getElementById('quantity').value) || 0;
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
+=======
+        const availableQty = parseInt(selectedProduct?.quantity || 0);
+        const requestedQty = parseInt(document.getElementById('quantity').value) || 0;
+        const promoBuy = selectedProduct?.promo_buy || '';
+        const promoFree = selectedProduct?.promo_free || '';
+>>>>>>> 86becdb (...)
         const warningDiv = document.getElementById('quantityWarning');
 
         const freeCount = getPromoFreeCount(requestedQty, promoBuy, promoFree);
@@ -468,9 +549,15 @@
     function addOrderToList() {
         const clientId = document.getElementById('selectedClientId').value;
         const clientName = document.getElementById('clientSearch').value;
+<<<<<<< HEAD
         const productId = document.getElementById('selectedProductId').value;
         const productName = document.getElementById('selectedProductName').value;
         const availableQty = parseInt(document.getElementById('selectedProductQty').value || 0);
+=======
+        const productId = document.getElementById('productSelect').value;
+        const productName = selectedProduct?.name || '';
+        const availableQty = parseInt(selectedProduct?.quantity || 0);
+>>>>>>> 86becdb (...)
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const price = parseInt(document.getElementById('price').value) || 0;
 
@@ -479,8 +566,14 @@
             return;
         }
 
+<<<<<<< HEAD
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
+=======
+        // Validate quantity (aksiya bepul mahsulotlarni ham hisobga olgan holda)
+        const promoBuy = selectedProduct?.promo_buy || '';
+        const promoFree = selectedProduct?.promo_free || '';
+>>>>>>> 86becdb (...)
         const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
         const totalToDeduct = quantity + freeCount;
         if (totalToDeduct > availableQty) {
@@ -507,6 +600,7 @@
         document.getElementById('quantity').value = '';
         document.getElementById('price').value = '';
         document.getElementById('grandTotal').value = '';
+<<<<<<< HEAD
         document.getElementById('productSearch').value = '';
         document.getElementById('selectedProductId').value = '';
         document.getElementById('selectedProductName').value = '';
@@ -517,6 +611,11 @@
         document.getElementById('quantityWarning').classList.add('hidden');
         document.getElementById('promoInfo').classList.add('hidden');
         syncTooltipVisibility();
+=======
+        document.getElementById('productSearchInput').value = '';
+        document.getElementById('productSelect').value = '';
+        selectedProduct = null;
+>>>>>>> 86becdb (...)
     }
 
     function removeOrder(index) {
@@ -684,6 +783,46 @@
         urlParams.set('date_to', dateTo);
 
         window.location.search = urlParams.toString();
+    }
+
+    function searchFilterProducts() {
+        const term = document.getElementById('filterProductSearch').value.toLowerCase().trim();
+        const dropdown = document.getElementById('filterProductDropdown');
+        document.getElementById('filterProduct').value = '';
+        const filtered = term ? allProducts.filter(p => p.name.toLowerCase().includes(term)) : allProducts;
+        renderFilterProductDropdown(filtered.slice(0, 50));
+        dropdown.classList.remove('hidden');
+    }
+
+    function renderFilterProductDropdown(items) {
+        const dropdown = document.getElementById('filterProductDropdown');
+        let html = '<div class="p-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 font-medium text-blue-600" onmousedown="selectFilterProduct(\'\', \'Barcha mahsulotlar\')">Barcha mahsulotlar</div>';
+        if (!items.length) {
+            html += '<div class="p-3 text-gray-500 text-sm">Topilmadi</div>';
+        } else {
+            html += items.map(p => `
+                <div class="p-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100"
+                     onmousedown="selectFilterProduct('${p.id}', \`${p.name.replace(/`/g, '')}\`)">
+                    <div class="font-medium">${p.name}</div>
+                </div>`).join('');
+        }
+        dropdown.innerHTML = html;
+    }
+
+    function selectFilterProduct(id, name) {
+        document.getElementById('filterProductSearch').value = id ? name : '';
+        document.getElementById('filterProduct').value = id;
+        document.getElementById('filterProductDropdown').classList.add('hidden');
+        setFilter();
+    }
+
+    function showFilterProductDropdown() {
+        renderFilterProductDropdown(allProducts.slice(0, 50));
+        document.getElementById('filterProductDropdown').classList.remove('hidden');
+    }
+
+    function hideFilterProductDropdown() {
+        setTimeout(() => document.getElementById('filterProductDropdown').classList.add('hidden'), 200);
     }
 
     let clients = [

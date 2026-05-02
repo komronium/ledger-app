@@ -327,4 +327,26 @@ class SupplierPaymentForm(forms.ModelForm):
 
     class Meta:
         model = SupplierPayment
-        fields = ['amount', 'payment_type', 'comment']
+        fields = ['amount', 'payment_type', 'comment', 'barter_product', 'barter_quantity']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['amount'].required = False
+        self.fields['barter_product'].required = False
+        self.fields['barter_quantity'].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        ptype = cleaned.get('payment_type')
+        if ptype == SupplierPayment.PaymentTypeChoices.BARTER:
+            product = cleaned.get('barter_product')
+            qty = cleaned.get('barter_quantity') or 0
+            if not product or qty <= 0:
+                raise forms.ValidationError("Barter uchun mahsulot va miqdorni tanlang.")
+            if product.quantity < qty:
+                raise forms.ValidationError(f"Omborda {product.quantity} ta mavjud, {qty} ta yetarli emas.")
+            cleaned['amount'] = product.price * qty
+        else:
+            if not cleaned.get('amount'):
+                raise forms.ValidationError("Summa to'ldirilishi shart.")
+        return cleaned

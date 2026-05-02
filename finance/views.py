@@ -13,17 +13,27 @@ from django.views import View
 
 from finance.filters import CustomerFilter, OrderFilter, PaymentFilter
 from finance.forms import (
-    ProductForm,
-    SupplierForm,
-    ExpenseForm,
-    PurchaseForm,
-    SupplierPaymentForm,
     CustomerForm,
+    ExpenseForm,
     OrderForm,
     PaymentEditForm,
     PaymentForm,
+    ProductForm,
+    PurchaseForm,
+    SupplierForm,
+    SupplierPaymentForm,
 )
-from finance.models import Product, Customer, Order, PaymentHistory, Supplier, Expense, Purchase, SupplierPayment, UserProfile
+from finance.models import (
+    Customer,
+    Expense,
+    Order,
+    PaymentHistory,
+    Product,
+    Purchase,
+    Supplier,
+    SupplierPayment,
+    UserProfile,
+)
 
 
 def _is_admin(user):
@@ -38,9 +48,9 @@ def _is_admin(user):
 
 
 def _to_decimal(value):
-    if value in (None, ''):
+    if value in (None, ""):
         return None
-    cleaned = str(value).replace(',', '.').replace(' ', '').strip()
+    cleaned = str(value).replace(",", ".").replace(" ", "").strip()
     if not cleaned:
         return None
     try:
@@ -52,7 +62,7 @@ def _to_decimal(value):
 class AdminOnlyMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if not _is_admin(request.user):
-            return redirect('dashboard')
+            return redirect("dashboard")
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -103,9 +113,17 @@ class OrderView(LoginRequiredMixin, View):
                     "type": "payment",
                     "id": payment.id,
                     "customer": payment.customer,
-                    "product": payment.barter_product if payment.payment_type == 'barter' else "",
-                    "quantity": payment.barter_quantity if payment.payment_type == 'barter' else 0,
-                    "price_per_kg": (payment.barter_product.price if payment.barter_product else 0) if payment.payment_type == 'barter' else 0,
+                    "product": payment.barter_product
+                    if payment.payment_type == "barter"
+                    else "",
+                    "quantity": payment.barter_quantity
+                    if payment.payment_type == "barter"
+                    else 0,
+                    "price_per_kg": (
+                        payment.barter_product.price if payment.barter_product else 0
+                    )
+                    if payment.payment_type == "barter"
+                    else 0,
                     "paid_amount": payment.amount,
                     "usd_amount": payment.usd_amount,
                     "exchange_rate": payment.exchange_rate,
@@ -216,11 +234,16 @@ class OrderView(LoginRequiredMixin, View):
             total_paid_amount = 0
             total_debt = totals["total_debt"]
 
-        products_list = list(Product.objects.values('id', 'name', 'price', 'quantity', 'promo_buy', 'promo_free'))
+        products_list = list(
+            Product.objects.values(
+                "id", "name", "price", "quantity", "promo_buy", "promo_free"
+            )
+        )
         import json as _json
+
         products_json = _json.dumps(products_list)
 
-        errors = request.session.pop('order_errors', None)
+        errors = request.session.pop("order_errors", None)
 
         context = {
             "orders": order_data,
@@ -240,7 +263,7 @@ class OrderView(LoginRequiredMixin, View):
         return render(request, self.template_name, context=context)
 
     def post(self, request):
-        orders_json = request.POST.get('orders_json', '[]')
+        orders_json = request.POST.get("orders_json", "[]")
         try:
             orders_data = json.loads(orders_json)
         except json.JSONDecodeError:
@@ -249,26 +272,32 @@ class OrderView(LoginRequiredMixin, View):
         errors = []
         for item in orders_data:
             try:
-                customer = Customer.objects.get(id=item.get('customer_id'))
-                product = Product.objects.get(id=item.get('product_id'))
-                requested_quantity = int(item.get('quantity', 0))
+                customer = Customer.objects.get(id=item.get("customer_id"))
+                product = Product.objects.get(id=item.get("product_id"))
+                requested_quantity = int(item.get("quantity", 0))
 
                 free_count = 0
                 if product.promo_buy and product.promo_free and product.promo_buy > 0:
-                    free_count = (requested_quantity // product.promo_buy) * product.promo_free
+                    free_count = (
+                        requested_quantity // product.promo_buy
+                    ) * product.promo_free
                 total_to_deduct = requested_quantity + free_count
                 if product.quantity < total_to_deduct:
                     if free_count:
-                        errors.append(f"{product.name}: {requested_quantity} so'raldi + {free_count} aksiya = {total_to_deduct} kerak, lekin {product.quantity} mavjud.")
+                        errors.append(
+                            f"{product.name}: {requested_quantity} so'raldi + {free_count} aksiya = {total_to_deduct} kerak, lekin {product.quantity} mavjud."
+                        )
                     else:
-                        errors.append(f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud.")
+                        errors.append(
+                            f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud."
+                        )
                     continue
 
                 order = Order(
                     customer=customer,
                     product=product,
                     quantity=requested_quantity,
-                    price_per_kg=int(item.get('price_per_kg', 0)),
+                    price_per_kg=int(item.get("price_per_kg", 0)),
                 )
                 order.save()
                 customer.total_debt += order.remaining_debt
@@ -277,7 +306,7 @@ class OrderView(LoginRequiredMixin, View):
                 continue
 
         if errors:
-            request.session['order_errors'] = errors
+            request.session["order_errors"] = errors
 
         return redirect("dashboard")
 
@@ -319,7 +348,7 @@ class OrderDeleteView(LoginRequiredMixin, View):
             customer.save()
         if order.product:
             free_count = order._compute_promo_free(order.product, order.quantity)
-            order.product.quantity += (order.quantity + free_count)
+            order.product.quantity += order.quantity + free_count
             order.product.save()
         order.delete()
         return redirect("dashboard")
@@ -393,8 +422,8 @@ class DebtView(AdminOnlyMixin, View):
         payments = PaymentFilter(
             query_params,
             PaymentHistory.objects.filter(paid_at__year=selected_year)
-                .select_related('customer', 'barter_product')
-                .order_by("-paid_at"),
+            .select_related("customer", "barter_product")
+            .order_by("-paid_at"),
         ).qs
 
         context = {
@@ -452,7 +481,10 @@ class PaymentDeleteView(AdminOnlyMixin, View):
         customer = payment.customer
         customer.total_debt += int(payment.amount)
         customer.save()
-        if payment.payment_type == PaymentHistory.PaymentTypeChoices.BARTER and payment.barter_product:
+        if (
+            payment.payment_type == PaymentHistory.PaymentTypeChoices.BARTER
+            and payment.barter_product
+        ):
             payment.barter_product.quantity -= payment.barter_quantity
             payment.barter_product.save()
         payment.delete()
@@ -488,14 +520,15 @@ class ProductView(AdminOnlyMixin, View):
 
         year, month = self.parse_month(selected_month)
 
-        products = list(Product.objects.annotate(
-            total_quantity=self.get_month_annotation(year, month)
-        ))
+        products = list(
+            Product.objects.annotate(
+                total_quantity=self.get_month_annotation(year, month)
+            )
+        )
 
         month_orders = Order.objects.filter(
-            order_date__year=year,
-            order_date__month=month
-        ).select_related('product')
+            order_date__year=year, order_date__month=month
+        ).select_related("product")
 
         deducted_map = {}
         free_map = {}
@@ -552,8 +585,18 @@ class StatisticsView(AdminOnlyMixin, View):
     template_name = "stats.html"
 
     MONTH_NAMES = [
-        "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-        "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
+        "Yanvar",
+        "Fevral",
+        "Mart",
+        "Aprel",
+        "May",
+        "Iyun",
+        "Iyul",
+        "Avgust",
+        "Sentabr",
+        "Oktabr",
+        "Noyabr",
+        "Dekabr",
     ]
 
     def get(self, request):
@@ -581,16 +624,22 @@ class StatisticsView(AdminOnlyMixin, View):
             count = month_orders.count()
             if revenue > max_monthly_revenue:
                 max_monthly_revenue = revenue
-            monthly_data.append({
-                "month": self.MONTH_NAMES[month_num - 1],
-                "month_num": month_num,
-                "revenue": revenue,
-                "quantity": qty,
-                "count": count,
-            })
+            monthly_data.append(
+                {
+                    "month": self.MONTH_NAMES[month_num - 1],
+                    "month_num": month_num,
+                    "revenue": revenue,
+                    "quantity": qty,
+                    "count": count,
+                }
+            )
 
         for m in monthly_data:
-            m["bar_pct"] = round((m["revenue"] / max_monthly_revenue) * 100) if max_monthly_revenue else 0
+            m["bar_pct"] = (
+                round((m["revenue"] / max_monthly_revenue) * 100)
+                if max_monthly_revenue
+                else 0
+            )
 
         top_products = Product.objects.annotate(
             sold_quantity=models.Sum(
@@ -603,15 +652,21 @@ class StatisticsView(AdminOnlyMixin, View):
             ),
         ).order_by("-sold_quantity")
 
-        top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[:5]
+        top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[
+            :5
+        ]
 
         supplier_stats = []
         total_supplier_debt = 0
         total_purchased_all = 0
 
         for supplier in Supplier.objects.all():
-            purchases = Purchase.objects.filter(supplier=supplier, purchase_date__year=selected_year)
-            payments = SupplierPayment.objects.filter(supplier=supplier, paid_at__year=selected_year)
+            purchases = Purchase.objects.filter(
+                supplier=supplier, purchase_date__year=selected_year
+            )
+            payments = SupplierPayment.objects.filter(
+                supplier=supplier, paid_at__year=selected_year
+            )
 
             purchased = sum(p.total_cost for p in purchases)
             paid = sum(p.amount for p in payments)
@@ -635,24 +690,28 @@ class StatisticsView(AdminOnlyMixin, View):
                 m_sales = sum(o.total_price for o in mo_orders)
                 m_purchased = sum(p.total_cost for p in mo_purchases)
                 m_paid = sum(p.amount for p in mo_payments)
-                monthly.append({
-                    "month": self.MONTH_NAMES[month_num - 1],
-                    "sales": m_sales,
-                    "purchased": m_purchased,
-                    "paid": m_paid,
-                    "profit": m_sales - m_purchased,
-                })
+                monthly.append(
+                    {
+                        "month": self.MONTH_NAMES[month_num - 1],
+                        "sales": m_sales,
+                        "purchased": m_purchased,
+                        "paid": m_paid,
+                        "profit": m_sales - m_purchased,
+                    }
+                )
 
-            supplier_stats.append({
-                "supplier": supplier,
-                "purchased": purchased,
-                "paid": paid,
-                "debt": debt,
-                "sales": sales_revenue,
-                "quantity": sales_quantity,
-                "profit": profit,
-                "monthly": monthly,
-            })
+            supplier_stats.append(
+                {
+                    "supplier": supplier,
+                    "purchased": purchased,
+                    "paid": paid,
+                    "debt": debt,
+                    "sales": sales_revenue,
+                    "quantity": sales_quantity,
+                    "profit": profit,
+                    "monthly": monthly,
+                }
+            )
 
         total_expenses = sum(
             e.amount for e in Expense.objects.filter(date__year=selected_year)
@@ -682,9 +741,7 @@ class SupplierView(AdminOnlyMixin, View):
     template_name = "supplier.html"
 
     def get(self, request):
-        suppliers = Supplier.objects.annotate(
-            product_count=models.Count('products')
-        )
+        suppliers = Supplier.objects.annotate(product_count=models.Count("products"))
         supplier_debts = {}
         for s in suppliers:
             purchased = sum(p.total_cost for p in s.purchases.all())
@@ -695,40 +752,46 @@ class SupplierView(AdminOnlyMixin, View):
         total_supplier_debt = sum(d for d in supplier_debts.values() if d > 0)
         debtors_count = sum(1 for d in supplier_debts.values() if d > 0)
 
-        return render(request, self.template_name, {
-            "suppliers": suppliers,
-            "supplier_debts": supplier_debts,
-            "total_products": total_products,
-            "total_supplier_debt": total_supplier_debt,
-            "debtors_count": debtors_count,
-            "page": "supplier",
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "suppliers": suppliers,
+                "supplier_debts": supplier_debts,
+                "total_products": total_products,
+                "total_supplier_debt": total_supplier_debt,
+                "debtors_count": debtors_count,
+                "page": "supplier",
+            },
+        )
 
     def post(self, request):
-        method = request.POST.get('_method')
-        if method == 'PUT':
-            supplier_id = request.POST.get('id')
+        method = request.POST.get("_method")
+        if method == "PUT":
+            supplier_id = request.POST.get("id")
             supplier = get_object_or_404(Supplier, pk=supplier_id)
             form = SupplierForm(request.POST, instance=supplier)
         else:
             form = SupplierForm(request.POST)
         if form.is_valid():
             form.save()
-        return redirect('supplier')
+        return redirect("supplier")
 
 
 class SupplierDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         Supplier.objects.filter(pk=pk).delete()
-        return redirect('supplier')
+        return redirect("supplier")
 
 
 class SupplierDetailView(AdminOnlyMixin, View):
-    template_name = 'supplier_detail.html'
+    template_name = "supplier_detail.html"
 
     def get(self, request, pk):
         supplier = get_object_or_404(Supplier, pk=pk)
-        purchases = Purchase.objects.filter(supplier=supplier).select_related('product', 'barter_product')
+        purchases = Purchase.objects.filter(supplier=supplier).select_related(
+            "product", "barter_product"
+        )
         payments = SupplierPayment.objects.filter(supplier=supplier)
 
         total_purchased = sum(p.total_cost for p in purchases)
@@ -745,57 +808,61 @@ class SupplierDetailView(AdminOnlyMixin, View):
 
         total_owed = supplier.initial_debt + total_purchased
 
-        return render(request, self.template_name, {
-            'supplier': supplier,
-            'purchases': purchases,
-            'payments': payments,
-            'total_purchased': total_purchased,
-            'total_paid': total_paid,
-            'total_owed': total_owed,
-            'debt': debt,
-            'revenue': revenue,
-            'profit': profit,
-            'products': products,
-            'all_products': all_products,
-            'page': 'supplier',
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "supplier": supplier,
+                "purchases": purchases,
+                "payments": payments,
+                "total_purchased": total_purchased,
+                "total_paid": total_paid,
+                "total_owed": total_owed,
+                "debt": debt,
+                "revenue": revenue,
+                "profit": profit,
+                "products": products,
+                "all_products": all_products,
+                "page": "supplier",
+            },
+        )
 
     def post(self, request, pk):
         supplier = get_object_or_404(Supplier, pk=pk)
-        action = request.POST.get('action')
+        action = request.POST.get("action")
 
-        if action == 'purchase':
-            purchase_type = request.POST.get('purchase_type', 'cash')
-            barter_product_id = request.POST.get('barter_product')
-            barter_quantity = request.POST.get('barter_quantity', 0)
+        if action == "purchase":
+            purchase_type = request.POST.get("purchase_type", "cash")
+            barter_product_id = request.POST.get("barter_product")
+            barter_quantity = request.POST.get("barter_quantity", 0)
 
-            usd_amount = _to_decimal(request.POST.get('usd_price_per_unit'))
-            exchange_rate = _to_decimal(request.POST.get('exchange_rate'))
-            sum_price = request.POST.get('price_per_unit')
+            usd_amount = _to_decimal(request.POST.get("usd_price_per_unit"))
+            exchange_rate = _to_decimal(request.POST.get("exchange_rate"))
+            sum_price = request.POST.get("price_per_unit")
 
-            if purchase_type == 'barter':
+            if purchase_type == "barter":
                 if not barter_product_id or not barter_quantity:
-                    return redirect('supplier_detail', pk=pk)
+                    return redirect("supplier_detail", pk=pk)
             else:
                 has_usd = usd_amount and exchange_rate
                 if not sum_price and not has_usd:
-                    return redirect('supplier_detail', pk=pk)
+                    return redirect("supplier_detail", pk=pk)
 
             try:
-                product_id = request.POST.get('product') or None
-                quantity = int(request.POST.get('quantity', 0))
+                product_id = request.POST.get("product") or None
+                quantity = int(request.POST.get("quantity", 0))
             except (ValueError, TypeError):
-                return redirect('supplier_detail', pk=pk)
+                return redirect("supplier_detail", pk=pk)
 
             purchase = Purchase(
                 supplier=supplier,
                 product_id=product_id,
                 quantity=quantity,
                 purchase_type=purchase_type,
-                note=request.POST.get('note', ''),
+                note=request.POST.get("note", ""),
             )
 
-            if purchase_type == 'barter':
+            if purchase_type == "barter":
                 purchase.price_per_unit = None
                 purchase.barter_product_id = barter_product_id
                 try:
@@ -815,10 +882,10 @@ class SupplierDetailView(AdminOnlyMixin, View):
 
             purchase.save()
 
-        elif action == 'payment':
-            usd_amount = _to_decimal(request.POST.get('usd_amount'))
-            exchange_rate = _to_decimal(request.POST.get('exchange_rate'))
-            sum_amount = request.POST.get('amount')
+        elif action == "payment":
+            usd_amount = _to_decimal(request.POST.get("usd_amount"))
+            exchange_rate = _to_decimal(request.POST.get("exchange_rate"))
+            sum_amount = request.POST.get("amount")
 
             if usd_amount and exchange_rate:
                 final_amount = int(usd_amount * exchange_rate)
@@ -826,20 +893,20 @@ class SupplierDetailView(AdminOnlyMixin, View):
                 try:
                     final_amount = int(sum_amount)
                 except (ValueError, TypeError):
-                    return redirect('supplier_detail', pk=pk)
+                    return redirect("supplier_detail", pk=pk)
 
             payment = SupplierPayment(
                 supplier=supplier,
                 amount=final_amount,
-                payment_type=request.POST.get('payment_type') or None,
-                comment=request.POST.get('comment', ''),
+                payment_type=request.POST.get("payment_type") or None,
+                comment=request.POST.get("comment", ""),
             )
             if usd_amount and exchange_rate:
                 payment.usd_amount = usd_amount
                 payment.exchange_rate = exchange_rate
             payment.save()
 
-        return redirect('supplier_detail', pk=pk)
+        return redirect("supplier_detail", pk=pk)
 
 
 class PurchaseDeleteView(AdminOnlyMixin, View):
@@ -849,65 +916,86 @@ class PurchaseDeleteView(AdminOnlyMixin, View):
         if purchase.product:
             purchase.product.quantity -= purchase.quantity
             purchase.product.save()
-        if purchase.purchase_type == Purchase.PurchaseTypeChoices.BARTER and purchase.barter_product:
+        if (
+            purchase.purchase_type == Purchase.PurchaseTypeChoices.BARTER
+            and purchase.barter_product
+        ):
             purchase.barter_product.quantity += purchase.barter_quantity
             purchase.barter_product.save()
         purchase.delete()
-        return redirect('supplier_detail', pk=supplier_pk)
+        return redirect("supplier_detail", pk=supplier_pk)
 
 
 class SupplierPaymentDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         payment = get_object_or_404(SupplierPayment, pk=pk)
         supplier_pk = payment.supplier.pk
+        if (
+            payment.payment_type == SupplierPayment.PaymentTypeChoices.BARTER
+            and payment.barter_product
+        ):
+            payment.barter_product.quantity += payment.barter_quantity
+            payment.barter_product.save()
         payment.delete()
-        return redirect('supplier_detail', pk=supplier_pk)
+        return redirect("supplier_detail", pk=supplier_pk)
 
 
 class ProfileView(AdminOnlyMixin, View):
     def get(self, request):
-        return redirect('operator')
+        return redirect("operator")
 
     def post(self, request):
-        return redirect('operator')
+        return redirect("operator")
 
 
 class OperatorView(AdminOnlyMixin, View):
-    template_name = 'operator.html'
+    template_name = "operator.html"
 
     def _all_users(self):
-        return User.objects.select_related('profile').order_by('-is_superuser', 'username')
+        return User.objects.select_related("profile").order_by(
+            "-is_superuser", "username"
+        )
 
     def get(self, request):
-        return render(request, self.template_name, {'users': self._all_users(), 'page': 'operator'})
+        return render(
+            request,
+            self.template_name,
+            {"users": self._all_users(), "page": "operator"},
+        )
 
     def post(self, request):
-        action = request.POST.get('action')
+        action = request.POST.get("action")
         error = None
         success = None
 
-        if action == 'add_user':
-            username = request.POST.get('username', '').strip()
-            password = request.POST.get('password', '').strip()
-            role = request.POST.get('role', UserProfile.ROLE_OPERATOR)
+        if action == "add_user":
+            username = request.POST.get("username", "").strip()
+            password = request.POST.get("password", "").strip()
+            role = request.POST.get("role", UserProfile.ROLE_OPERATOR)
             if not username or not password:
                 error = "Username va parol to'ldirilishi shart."
             elif User.objects.filter(username=username).exists():
                 error = f"'{username}' allaqachon band."
             else:
-                new_user = User.objects.create_user(username=username, password=password)
+                new_user = User.objects.create_user(
+                    username=username, password=password
+                )
                 UserProfile.objects.filter(user=new_user).update(role=role)
                 success = "added"
 
-        elif action == 'edit_user':
-            user_id = request.POST.get('user_id')
+        elif action == "edit_user":
+            user_id = request.POST.get("user_id")
             target = get_object_or_404(User, pk=user_id)
-            new_username = request.POST.get('new_username', '').strip()
-            new_password = request.POST.get('new_password', '').strip()
-            new_role = request.POST.get('new_role', '')
+            new_username = request.POST.get("new_username", "").strip()
+            new_password = request.POST.get("new_password", "").strip()
+            new_role = request.POST.get("new_role", "")
 
             if new_username and new_username != target.username:
-                if User.objects.filter(username=new_username).exclude(pk=target.pk).exists():
+                if (
+                    User.objects.filter(username=new_username)
+                    .exclude(pk=target.pk)
+                    .exists()
+                ):
                     error = f"'{new_username}' allaqachon band."
                 else:
                     target.username = new_username
@@ -921,48 +1009,60 @@ class OperatorView(AdminOnlyMixin, View):
                     target.save()
                     if target == request.user:
                         from django.contrib.auth import update_session_auth_hash
+
                         update_session_auth_hash(request, target)
 
-            if not error and new_role in (UserProfile.ROLE_ADMIN, UserProfile.ROLE_OPERATOR):
+            if not error and new_role in (
+                UserProfile.ROLE_ADMIN,
+                UserProfile.ROLE_OPERATOR,
+            ):
                 UserProfile.objects.filter(user=target).update(role=new_role)
 
             if not error:
                 success = "updated"
 
-        return render(request, self.template_name, {
-            'users': self._all_users(),
-            'page': 'operator',
-            'error': error,
-            'success': success,
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "users": self._all_users(),
+                "page": "operator",
+                "error": error,
+                "success": success,
+            },
+        )
 
 
 class OperatorDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         User.objects.filter(pk=pk, profile__role=UserProfile.ROLE_OPERATOR).delete()
-        return redirect('operator')
+        return redirect("operator")
 
 
 class ExpenseView(AdminOnlyMixin, View):
-    template_name = 'expense.html'
+    template_name = "expense.html"
 
     def get(self, request):
         expenses = Expense.objects.all()
         total = sum(e.amount for e in expenses)
-        return render(request, self.template_name, {
-            'expenses': expenses,
-            'total': total,
-            'page': 'expense',
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "expenses": expenses,
+                "total": total,
+                "page": "expense",
+            },
+        )
 
     def post(self, request):
         form = ExpenseForm(request.POST)
         if form.is_valid():
             form.save()
-        return redirect('expense')
+        return redirect("expense")
 
 
 class ExpenseDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         Expense.objects.filter(pk=pk).delete()
-        return redirect('expense')
+        return redirect("expense")

@@ -148,13 +148,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Mahsulot</label>
-                    <select name="product"
-                        class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
-                        <option value="">— Tanlang —</option>
-                        {% for p in products %}
-                        <option value="{{ p.id }}">{{ p.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div data-product-search data-name="product" data-products='[{% for p in products %}{"id":{{ p.id }},"name":"{{ p.name|escapejs }}","price":{{ p.price }},"quantity":{{ p.quantity }}}{% if not forloop.last %},{% endif %}{% endfor %}]'></div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Miqdor</label>
@@ -198,13 +192,7 @@
                     <h4 class="text-xs font-bold text-amber-800 mb-2">Barter (Ayirboshlash)</h4>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beriladigan mahsulot</label>
-                        <select name="barter_product"
-                            class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all">
-                            <option value="">— Tanlang —</option>
-                            {% for p in all_products %}
-                            <option value="{{ p.id }}">{{ p.name }} (Mavjud: {{ p.quantity }})</option>
-                            {% endfor %}
-                        </select>
+                        <div data-product-search data-name="barter_product" data-products='[{% for p in all_products %}{"id":{{ p.id }},"name":"{{ p.name|escapejs }}","price":{{ p.price }},"quantity":{{ p.quantity }}}{% if not forloop.last %},{% endif %}{% endfor %}]'></div>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beriladigan miqdor</label>
@@ -242,6 +230,17 @@
             <input type="hidden" name="action" value="payment">
             <div class="space-y-3">
                 <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">To'lov turi</label>
+                    <select name="payment_type" id="paymentType" onchange="togglePaymentBarter()"
+                        class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white transition-all">
+                        <option value="">— Tanlang —</option>
+                        <option value="cash">Naqd</option>
+                        <option value="bank">Pul ko'chirish</option>
+                        <option value="click">Click</option>
+                        <option value="barter">Barter (Mahsulot bilan)</option>
+                    </select>
+                </div>
+                <div id="paymentAmountField">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Summa</label>
                     <!-- Currency toggle -->
                     <div class="flex rounded-lg border border-gray-200 overflow-hidden mb-2 text-xs font-semibold">
@@ -253,7 +252,7 @@
                     </div>
                     <input type="hidden" name="payment_currency" id="paymentCurrencyHidden" value="sum">
                     <div id="paymentSumDiv">
-                        <input required type="number" name="amount" id="paymentSumInput" min="1" placeholder="So'mda"
+                        <input type="number" name="amount" id="paymentSumInput" min="1" placeholder="So'mda"
                             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all">
                     </div>
                     <div id="paymentUsdDiv" class="hidden space-y-2">
@@ -272,15 +271,23 @@
                         </div>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">To'lov turi</label>
-                    <select name="payment_type"
-                        class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white transition-all">
-                        <option value="">— Tanlang —</option>
-                        <option value="cash">Naqd</option>
-                        <option value="bank">Pul ko'chirish</option>
-                        <option value="click">Click</option>
-                    </select>
+                <!-- Barter payment fields -->
+                <div id="paymentBarterFields" class="hidden space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h4 class="text-xs font-bold text-amber-800 mb-2">Barter to'lov (Firmaga mahsulot beriladi)</h4>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beriladigan mahsulot</label>
+                        <div data-product-search data-name="barter_product" data-products='[{% for p in all_products %}{"id":{{ p.id }},"name":"{{ p.name|escapejs }}","price":{{ p.price }},"quantity":{{ p.quantity }}}{% if not forloop.last %},{% endif %}{% endfor %}]'></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Beriladigan miqdor</label>
+                        <input type="number" name="barter_quantity" id="paymentBarterQty" min="1" placeholder="0"
+                            oninput="updateBarterPaymentAmount()"
+                            class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all">
+                    </div>
+                    <div class="text-xs text-amber-800 bg-white border border-amber-200 rounded px-3 py-2">
+                        <span class="font-semibold">Hisoblangan summa:</span>
+                        <span id="paymentBarterTotal" class="font-bold">0</span> so'm
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Izoh <span
@@ -413,9 +420,15 @@
                             {% if pay.payment_type == 'cash' %}bg-green-100 text-green-700
                             {% elif pay.payment_type == 'bank' %}bg-blue-100 text-blue-700
                             {% elif pay.payment_type == 'click' %}bg-purple-100 text-purple-700
+                            {% elif pay.payment_type == 'barter' %}bg-amber-100 text-amber-700
                             {% else %}bg-gray-100 text-gray-600{% endif %}">
                             {{ pay.get_payment_type_display|default:"—" }}
                         </span>
+                        {% if pay.payment_type == 'barter' and pay.barter_product %}
+                        <div class="text-[10px] text-amber-700 mt-1">
+                            {{ pay.barter_product.name }} × {{ pay.barter_quantity }}
+                        </div>
+                        {% endif %}
                     </td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
                         {% if pay.usd_amount and pay.exchange_rate %}
@@ -468,7 +481,100 @@
         setPurchaseCurrency('sum');
         setPaymentCurrency('sum');
         toggleBarter();
+        togglePaymentBarter();
+        initProductSearchSelects();
     });
+
+    function togglePaymentBarter() {
+        const ptype = document.getElementById('paymentType').value;
+        const amountField = document.getElementById('paymentAmountField');
+        const barterFields = document.getElementById('paymentBarterFields');
+        const sumInput = document.getElementById('paymentSumInput');
+        const usdInput = document.getElementById('paymentConverted');
+        const qtyInput = document.getElementById('paymentBarterQty');
+
+        if (ptype === 'barter') {
+            amountField.classList.add('hidden');
+            barterFields.classList.remove('hidden');
+            sumInput.removeAttribute('required');
+            usdInput.removeAttribute('required');
+            qtyInput.setAttribute('required', '');
+        } else {
+            amountField.classList.remove('hidden');
+            barterFields.classList.add('hidden');
+            qtyInput.removeAttribute('required');
+            // restore required state on visible currency input
+            setPaymentCurrency(document.getElementById('paymentCurrencyHidden').value || 'sum');
+        }
+    }
+
+    function updateBarterPaymentAmount() {
+        const wrapper = document.querySelector('#paymentBarterFields [data-product-search]');
+        const hidden = wrapper ? wrapper.querySelector('input[type=hidden]') : null;
+        const productId = hidden ? hidden.value : '';
+        const qty = parseInt(document.getElementById('paymentBarterQty').value) || 0;
+        const products = wrapper ? JSON.parse(wrapper.dataset.products) : [];
+        const product = products.find(p => String(p.id) === String(productId));
+        const total = product ? product.price * qty : 0;
+        document.getElementById('paymentBarterTotal').textContent = total.toLocaleString('uz-UZ');
+    }
+
+    // Reusable searchable product select
+    function initProductSearchSelects() {
+        document.querySelectorAll('[data-product-search]').forEach(wrapper => {
+            const name = wrapper.dataset.name;
+            const products = JSON.parse(wrapper.dataset.products || '[]');
+            wrapper.innerHTML = `
+                <div class="relative">
+                    <input type="text" placeholder="Qidirish..." autocomplete="off"
+                        class="ps-input w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                    <input type="hidden" name="${name}" value="">
+                    <div class="ps-dropdown absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden top-full mt-1"></div>
+                </div>
+            `;
+            const input = wrapper.querySelector('.ps-input');
+            const hidden = wrapper.querySelector('input[type=hidden]');
+            const dropdown = wrapper.querySelector('.ps-dropdown');
+
+            function render(items) {
+                if (!items.length) {
+                    dropdown.innerHTML = '<div class="p-3 text-gray-400 text-sm">Topilmadi</div>';
+                    return;
+                }
+                dropdown.innerHTML = items.map(p => `
+                    <div class="ps-opt p-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100" data-id="${p.id}" data-name="${p.name}">
+                        <div class="font-medium text-gray-800">${p.name}</div>
+                        <div class="text-xs text-gray-500">Mavjud: ${p.quantity} · ${p.price.toLocaleString('uz-UZ')} so'm</div>
+                    </div>
+                `).join('');
+                dropdown.querySelectorAll('.ps-opt').forEach(opt => {
+                    opt.addEventListener('mousedown', e => {
+                        e.preventDefault();
+                        input.value = opt.dataset.name;
+                        hidden.value = opt.dataset.id;
+                        dropdown.classList.add('hidden');
+                        wrapper.dispatchEvent(new CustomEvent('product:selected', { detail: { id: opt.dataset.id, name: opt.dataset.name } }));
+                        if (typeof updateBarterPaymentAmount === 'function') updateBarterPaymentAmount();
+                    });
+                });
+            }
+
+            input.addEventListener('input', () => {
+                hidden.value = '';
+                const q = input.value.toLowerCase().trim();
+                const filtered = q ? products.filter(p => p.name.toLowerCase().includes(q)) : products;
+                render(filtered.slice(0, 50));
+                dropdown.classList.remove('hidden');
+            });
+            input.addEventListener('focus', () => {
+                render(products.slice(0, 50));
+                dropdown.classList.remove('hidden');
+            });
+            input.addEventListener('blur', () => {
+                setTimeout(() => dropdown.classList.add('hidden'), 200);
+            });
+        });
+    }
 
     function toggleBarter() {
         const purchaseType = document.getElementById('purchaseType').value;

@@ -241,6 +241,7 @@ class SupplierPayment(models.Model):
         BANK = 'bank', "Pul ko'chirish"
         CASH = 'cash', 'Naqd'
         CLICK = 'click', 'Click'
+        BARTER = 'barter', 'Barter (Mahsulot)'
 
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments', verbose_name="Firma")
     amount = models.IntegerField(verbose_name="Summa")
@@ -257,12 +258,30 @@ class SupplierPayment(models.Model):
     payment_type = models.CharField(max_length=20, choices=PaymentTypeChoices.choices, null=True, blank=True)
     paid_at = models.DateField(auto_now_add=True)
     comment = models.TextField(blank=True, null=True, verbose_name="Izoh")
+    barter_product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='barter_supplier_payments',
+        verbose_name="Barter mahsuloti"
+    )
+    barter_quantity = models.IntegerField(default=0, verbose_name="Barter miqdori")
 
     class Meta:
         db_table = 'supplier_payments'
         verbose_name = 'Supplier Payment'
         verbose_name_plural = 'Supplier Payments'
         ordering = ['-paid_at']
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if self.payment_type == self.PaymentTypeChoices.BARTER and self.barter_product:
+            self.amount = self.barter_product.price * self.barter_quantity
+        super().save(*args, **kwargs)
+        if is_new and self.payment_type == self.PaymentTypeChoices.BARTER and self.barter_product:
+            self.barter_product.quantity -= self.barter_quantity
+            self.barter_product.save()
 
     def __str__(self):
         return f"{self.supplier.name} - {self.amount} so'm - {self.paid_at}"

@@ -1,83 +1,182 @@
-{% extends "base.html" %}
-{% load custom_filters %}
-{% block content %}
+{% extends "base.html" %} {% load custom_filters %} {% block content %}
 
 <div id="ordersContent" class="tab-content">
     <div class="modern-card rounded-2xl p-8 mb-8 card-hover">
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Buyurtmani O'zgartirish</h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">
+            Buyurtmani O'zgartirish
+        </h2>
         <p class="mb-8 text-sm text-gray-500">
-            {{ order.order_date|date:"d-m-Y" }} &mdash;
-            {{ order.customer.name }} &mdash; {{ order.product.name }}
+            {{ order.order_date|date:"d-m-Y" }} &mdash; {{ order.customer.name
+            }} &mdash; {{ order.product.name }}
         </p>
-        <form action="{% url 'order_edit' order.id %}" method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <form
+            action="{% url 'order_edit' order.id %}"
+            method="POST"
+            class="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        >
             {% csrf_token %}
             <div class="lg:col-span-2">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Mijoz</label>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-1.5"
+                            >Mijoz</label
+                        >
                         <div class="relative">
-                            <input value="{{ order.customer.name }}" type="text" required id="clientSearch"
+                            <input
+                                value="{{ order.customer.name }}"
+                                type="text"
+                                required
+                                id="clientSearch"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all outline-none"
-                                placeholder="Mijoz qidirish..." oninput="searchClients()" onfocus="showClientDropdown()" onblur="hideClientDropdown()">
-                            <div id="clientDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                                placeholder="Mijoz qidirish..."
+                                oninput="searchClients()"
+                                onfocus="showClientDropdown()"
+                                onblur="hideClientDropdown()"
+                            />
+                            <div
+                                id="clientDropdown"
+                                class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"
+                            ></div>
                         </div>
-                        <input type="hidden" name="customer_id" id="selectedClientId" value="{{ order.customer.id }}">
+                        <input
+                            type="hidden"
+                            name="customer_id"
+                            id="selectedClientId"
+                            value="{{ order.customer.id }}"
+                        />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Mahsulot</label>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-1.5"
+                            >Mahsulot</label
+                        >
                         <div class="relative">
-                            <input type="text" id="productSearch" autocomplete="off"
+                            <input
+                                type="text"
+                                id="productSearch"
+                                autocomplete="off"
                                 value="{{ order.product.name|default:'' }}"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all outline-none"
                                 placeholder="Qidirish..."
-                                oninput="searchProducts()" onfocus="showProductDropdown()" onblur="hideProductDropdown()">
-                            <div id="productDropdown"
-                                class="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden top-full mt-1"></div>
+                                oninput="searchProducts()"
+                                onfocus="showProductDropdown()"
+                                onblur="hideProductDropdown()"
+                            />
+                            <div
+                                id="productDropdown"
+                                class="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden top-full mt-1"
+                            ></div>
                         </div>
-                        <input type="hidden" id="selectedProductId" name="product_id" value="{{ order.product.id|default:'' }}" required>
+                        <input
+                            type="hidden"
+                            id="selectedProductId"
+                            name="product_id"
+                            value="{{ order.product.id|default:'' }}"
+                            required
+                        />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Miqdori</label>
-                        <input value="{{ order.quantity }}" name="quantity" required type="number" id="quantity"
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-1.5"
+                            >Miqdori</label
+                        >
+                        <input
+                            value="{{ order.quantity }}"
+                            name="quantity"
+                            required
+                            type="number"
+                            id="quantity"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
-                            placeholder="0" oninput="calculateTotal()">
+                            placeholder="0"
+                            oninput="calculateTotal()"
+                        />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Narxi</label>
-                        <input value="{{ order.price_per_kg }}" name="price_per_kg" required type="number" id="price"
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-1.5"
+                            >Narxi</label
+                        >
+                        <input
+                            value="{{ order.price_per_kg }}"
+                            name="price_per_kg"
+                            required
+                            type="number"
+                            id="price"
                             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition-all"
-                            placeholder="0" oninput="calculateTotal()">
+                            placeholder="0"
+                            oninput="calculateTotal()"
+                        />
                     </div>
                 </div>
             </div>
 
             <div class="lg:col-span-1">
                 <div class="bg-gray-50 rounded-xl p-6 space-y-4">
-                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Hisob-kitob</h3>
+                    <h3
+                        class="text-sm font-bold text-gray-700 uppercase tracking-wide"
+                    >
+                        Hisob-kitob
+                    </h3>
                     <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1.5">Jami summa</label>
-                        <input type="text" id="grandTotal"
+                        <label
+                            class="block text-xs font-medium text-gray-500 mb-1.5"
+                            >Jami summa</label
+                        >
+                        <input
+                            type="text"
+                            id="grandTotal"
                             class="w-full p-3 border border-blue-200 rounded-lg bg-blue-50 text-blue-800 font-bold text-sm"
-                            readonly>
+                            readonly
+                        />
                     </div>
                     <div class="pt-2 space-y-2.5">
-                        <button type="submit"
-                            class="w-full gradient-bg text-white py-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all">
+                        <button
+                            type="submit"
+                            class="w-full gradient-bg text-white py-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all"
+                        >
                             Saqlash
                         </button>
-                        <button type="button" onclick="showEditReceipt()"
-                            class="w-full flex items-center justify-center gap-2 bg-slate-800 text-white py-3 rounded-lg font-semibold text-sm hover:bg-slate-900 transition-all">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        <button
+                            type="button"
+                            onclick="showEditReceipt()"
+                            class="w-full flex items-center justify-center gap-2 bg-slate-800 text-white py-3 rounded-lg font-semibold text-sm hover:bg-slate-900 transition-all"
+                        >
+                            <svg
+                                class="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                                />
+                            </svg>
                             Chek Ko'rish
                         </button>
-                        <button type="button" onclick="window.location.href='{% url 'dashboard' %}'"
-                            class="w-full py-3 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all">
+                        <button
+                            type="button"
+                            onclick="window.location.href='{% url 'dashboard' %}'"
+                            class="w-full py-3 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all"
+                        >
                             Bekor qilish
                         </button>
-                        <form action="{% url 'order_delete' order.id %}" method="GET"
-                            onsubmit="return confirm('Buyurtmani o\'chirishni tasdiqlaysizmi?')">
-                            <button type="submit"
-                                class="w-full py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-100 transition-all">
+                        <form
+                            action="{% url 'order_delete' order.id %}"
+                            method="GET"
+                            onsubmit="
+                                return confirm(
+                                    'Buyurtmani o\'chirishni tasdiqlaysizmi?',
+                                );
+                            "
+                        >
+                            <button
+                                type="submit"
+                                class="w-full py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-100 transition-all"
+                            >
                                 O'chirish
                             </button>
                         </form>
@@ -89,172 +188,331 @@
 </div>
 
 <!-- Receipt Modal -->
-<div id="editReceiptModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[95vh]">
-        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
-            <span class="text-sm font-semibold text-gray-600">Buyurtma cheki</span>
+<div
+    id="editReceiptModal"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4"
+>
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[95vh]"
+    >
+        <div
+            class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100"
+        >
+            <span class="text-sm font-semibold text-gray-600"
+                >Buyurtma cheki</span
+            >
             <div class="flex gap-2">
-                <button onclick="printReceipt()" class="flex items-center gap-1.5 bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-900 transition-all">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <button
+                    onclick="printReceipt()"
+                    class="flex items-center gap-1.5 bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-900 transition-all"
+                >
+                    <svg
+                        class="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                        />
+                    </svg>
                     Print
                 </button>
-                <button onclick="document.getElementById('editReceiptModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-all">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button
+                    onclick="
+                        document
+                            .getElementById('editReceiptModal')
+                            .classList.add('hidden')
+                    "
+                    class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-all"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
                 </button>
             </div>
         </div>
         <div class="overflow-y-auto bg-gray-50 p-5">
-            <div id="receiptPaper" style="font-family:'Roboto Mono','Courier New',monospace; background:#fff; width:72mm; min-width:260px; margin:0 auto; padding:6mm 4mm; color:#000; font-size:12px; line-height:1.5;">
-                <div style="border-top:2px dashed #000; margin-bottom:5mm;"></div>
-                <div style="text-align:center; margin-bottom:5mm;">
-                    <div style="font-size:16px; font-weight:700; letter-spacing:3px;">SAVDO CHEKI</div>
-                    <div style="font-size:9px; color:#000; margin-top:2mm; letter-spacing:1px;">SAVDO TIZIMI</div>
+            <div
+                id="receiptPaper"
+                style="
+                    font-family:
+                        &quot;Roboto Mono&quot;, &quot;Courier New&quot;,
+                        monospace;
+                    background: #fff;
+                    width: 72mm;
+                    min-width: 260px;
+                    margin: 0 auto;
+                    padding: 6mm 4mm;
+                    color: #000;
+                    font-size: 12px;
+                    line-height: 1.5;
+                "
+            >
+                <div
+                    style="border-top: 2px dashed #000; margin-bottom: 5mm"
+                ></div>
+                <div style="text-align: center; margin-bottom: 5mm">
+                    <div
+                        style="
+                            font-size: 16px;
+                            font-weight: 700;
+                            letter-spacing: 3px;
+                        "
+                    >
+                        SAVDO CHEKI
+                    </div>
+                    <div
+                        style="
+                            font-size: 9px;
+                            color: #000;
+                            margin-top: 2mm;
+                            letter-spacing: 1px;
+                        "
+                    >
+                        SAVDO TIZIMI
+                    </div>
                 </div>
-                <div style="border-top:2px dashed #000; margin-bottom:4mm;"></div>
-                <div style="font-size:10px; margin-bottom:1mm;" id="erDateLine"></div>
-                <div style="font-size:10px; margin-bottom:4mm;">Chek №: <span id="erReceiptNo" style="font-weight:600;"></span></div>
-                <div style="border-top:2px dashed #000; margin-bottom:4mm;"></div>
-                <div id="erItemRow" style="margin-bottom:4mm; font-size:11px;"></div>
-                <div style="border-top:2px dashed #000; margin-bottom:4mm;"></div>
-                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:2mm;">
+                <div
+                    style="border-top: 2px dashed #000; margin-bottom: 4mm"
+                ></div>
+                <div
+                    style="font-size: 10px; margin-bottom: 1mm"
+                    id="erDateLine"
+                ></div>
+                <div style="font-size: 10px; margin-bottom: 4mm">
+                    Chek №:
+                    <span id="erReceiptNo" style="font-weight: 600"></span>
+                </div>
+                <div
+                    style="border-top: 2px dashed #000; margin-bottom: 4mm"
+                ></div>
+                <div
+                    id="erItemRow"
+                    style="margin-bottom: 4mm; font-size: 11px"
+                ></div>
+                <div
+                    style="border-top: 2px dashed #000; margin-bottom: 4mm"
+                ></div>
+                <div
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 13px;
+                        font-weight: 700;
+                        margin-bottom: 2mm;
+                    "
+                >
                     <span>JAMI:</span>
                     <span id="erGrandTotal"></span>
                 </div>
-                <div style="border-top:2px dashed #000; margin-top:4mm; margin-bottom:5mm;"></div>
-                <div style="text-align:center; font-size:11px; font-weight:600; margin-bottom:4mm; letter-spacing:3px;">* RAHMAT! *</div>
-                <div style="border-top:2px dashed #000;"></div>
+                <div
+                    style="
+                        border-top: 2px dashed #000;
+                        margin-top: 4mm;
+                        margin-bottom: 5mm;
+                    "
+                ></div>
+                <div
+                    style="
+                        text-align: center;
+                        font-size: 11px;
+                        font-weight: 600;
+                        margin-bottom: 4mm;
+                        letter-spacing: 3px;
+                    "
+                >
+                    * RAHMAT! *
+                </div>
+                <div style="border-top: 2px dashed #000"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    calculateTotal();
+        calculateTotal();
 
-    function printReceipt() {
-        const content = document.getElementById('receiptPaper').innerHTML;
-        const win = window.open('', '_blank', 'width=340,height=600,toolbar=0,menubar=0,scrollbars=0');
-        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>
-  @page { size: 80mm auto; margin: 0; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 80mm; background: #fff; }
-  body { font-family: 'Roboto Mono', 'Courier New', monospace; font-size: 12px; color: #000; padding: 4mm 5mm; line-height: 1.5; }
-</style></head><body>${content}</body></html>`);
-        win.document.close();
-        win.focus();
-        setTimeout(() => { win.print(); win.close(); }, 300);
-    }
+        function printReceipt() {
+            const content = document.getElementById('receiptPaper').innerHTML;
+            const win = window.open('', '_blank', 'width=340,height=600,toolbar=0,menubar=0,scrollbars=0');
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      @page { size: 80mm auto; margin: 0; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 80mm; background: #fff; }
+      body { font-family: 'Roboto Mono', 'Courier New', monospace; font-size: 12px; color: #000; padding: 4mm 5mm; line-height: 1.5; }
+    </style></head><body>${content}</body></html>`);
+            win.document.close();
+            win.focus();
+            setTimeout(() => { win.print(); win.close(); }, 300);
+        }
 
-    function showEditReceipt() {
-        const customer = document.getElementById('clientSearch').value;
-        const productName = document.getElementById('productSearch').value || '';
-        const qty = parseFloat(document.getElementById('quantity').value) || 0;
-        const price = parseFloat(document.getElementById('price').value) || 0;
-        const total = qty * price;
-        function fmt(n) { return Number(n).toLocaleString('uz-UZ'); }
-        const now = new Date();
-        const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
-        document.getElementById('erDateLine').textContent = `Sana: ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-        document.getElementById('erReceiptNo').textContent = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-        document.getElementById('erItemRow').innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:11px;gap:4px;">
-                <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;font-size:12px;word-break:break-word;">${customer}</div>
-                    <div style="margin-top:1mm;font-size:10px;">${productName}</div>
-                    <div style="margin-top:0.5mm;font-size:10px;">${fmt(qty)} x ${fmt(price)} so'm</div>
+        function showEditReceipt() {
+            const customer = document.getElementById('clientSearch').value;
+    <<<<<<< HEAD
+            const productName = document.getElementById('productSearch').value || '';
+    =======
+            const productName = document.getElementById('productSearchInput').value || '';
+    >>>>>>> 86becdb (...)
+            const qty = parseFloat(document.getElementById('quantity').value) || 0;
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const total = qty * price;
+            function fmt(n) { return Number(n).toLocaleString('uz-UZ'); }
+            const now = new Date();
+            const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+            document.getElementById('erDateLine').textContent = `Sana: ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+            document.getElementById('erReceiptNo').textContent = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+            document.getElementById('erItemRow').innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:11px;gap:4px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:700;font-size:12px;word-break:break-word;">${customer}</div>
+                        <div style="margin-top:1mm;font-size:10px;">${productName}</div>
+                        <div style="margin-top:0.5mm;font-size:10px;">${fmt(qty)} x ${fmt(price)} so'm</div>
+                    </div>
+                    <div style="font-weight:700;white-space:nowrap;font-size:12px;padding-left:4px;">${fmt(total)} so'm</div>
                 </div>
-                <div style="font-weight:700;white-space:nowrap;font-size:12px;padding-left:4px;">${fmt(total)} so'm</div>
-            </div>
-            <div style="border-bottom:1px dotted #aaa;margin-top:2mm;"></div>`;
-        document.getElementById('erGrandTotal').textContent = fmt(total) + ' so\'m';
-        document.getElementById('editReceiptModal').classList.remove('hidden');
-    }
-
-    function calculateTotal() {
-        const quantity = parseFloat(document.getElementById('quantity').value) || 0;
-        const price = parseFloat(document.getElementById('price').value) || 0;
-        const total = quantity * price;
-        document.getElementById('grandTotal').value = total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    }
-
-    let clients = [
-        {% for customer in customers %}
-        {'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}'},
-        {% endfor %}
-    ];
-
-    let productsList = [
-        {% for p in products %}
-        { 'id': '{{ p.id }}', 'name': '{{ p.name|escapejs }}', 'price': {{ p.price|default:0 }}, 'quantity': {{ p.quantity|default:0 }} },
-        {% endfor %}
-    ];
-
-    function searchProducts() {
-        const term = document.getElementById('productSearch').value.toLowerCase();
-        const dropdown = document.getElementById('productDropdown');
-        const filtered = term.length === 0
-            ? productsList
-            : productsList.filter(p => (p.name || '').toLowerCase().includes(term));
-        dropdown.innerHTML = '';
-        if (filtered.length === 0) {
-            dropdown.innerHTML = '<div class="px-3 py-3 text-gray-400 text-sm">Mahsulot topilmadi</div>';
-            dropdown.classList.remove('hidden');
-            return;
+                <div style="border-bottom:1px dotted #aaa;margin-top:2mm;"></div>`;
+            document.getElementById('erGrandTotal').textContent = fmt(total) + ' so\'m';
+            document.getElementById('editReceiptModal').classList.remove('hidden');
         }
-        filtered.forEach(p => {
-            const el = document.createElement('div');
-            el.className = 'px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0';
-            el.innerHTML = `<div class="font-semibold text-gray-800 text-sm">${p.name}</div>`;
-            el.onmousedown = (ev) => { ev.preventDefault(); selectProduct(p); };
-            dropdown.appendChild(el);
-        });
-        dropdown.classList.remove('hidden');
-    }
 
-    function selectProduct(p) {
-        document.getElementById('productSearch').value = p.name;
-        document.getElementById('selectedProductId').value = p.id;
-        document.getElementById('productDropdown').classList.add('hidden');
-    }
+        function calculateTotal() {
+            const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const total = quantity * price;
+            document.getElementById('grandTotal').value = total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
 
-    function showProductDropdown() {
-        searchProducts();
-    }
+        let clients = [
+            {% for customer in customers %}
+            {'id': '{{ customer.id }}', 'name': '{{ customer.name|escapejs }}', 'phone': '{{ customer.phone|escapejs }}'},
+            {% endfor %}
+        ];
 
-    function hideProductDropdown() {
-        setTimeout(() => document.getElementById('productDropdown').classList.add('hidden'), 200);
-    }
+    <<<<<<< HEAD
+        let productsList = [
+            {% for p in products %}
+            { 'id': '{{ p.id }}', 'name': '{{ p.name|escapejs }}', 'price': {{ p.price|default:0 }}, 'quantity': {{ p.quantity|default:0 }} },
+    =======
+        let products = [
+            {% for product in products %}
+            {'id': '{{ product.id }}', 'name': '{{ product.name|escapejs }}', 'quantity': {{ product.quantity }}, 'price': {{ product.price }}},
+    >>>>>>> 86becdb (...)
+            {% endfor %}
+        ];
 
-    function searchClients() {
-        const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
-        const dropdown = document.getElementById('clientDropdown');
-        if (searchTerm.length === 0) {
+        function searchProducts() {
+    <<<<<<< HEAD
+            const term = document.getElementById('productSearch').value.toLowerCase();
+            const dropdown = document.getElementById('productDropdown');
+            const filtered = term.length === 0
+                ? productsList
+                : productsList.filter(p => (p.name || '').toLowerCase().includes(term));
             dropdown.innerHTML = '';
-            dropdown.classList.add('hidden');
-            return;
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="px-3 py-3 text-gray-400 text-sm">Mahsulot topilmadi</div>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+            filtered.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0';
+                el.innerHTML = `<div class="font-semibold text-gray-800 text-sm">${p.name}</div>`;
+                el.onmousedown = (ev) => { ev.preventDefault(); selectProduct(p); };
+                dropdown.appendChild(el);
+            });
+            dropdown.classList.remove('hidden');
         }
-        const filtered = clients.filter(c => c.name.toLowerCase().includes(searchTerm) || c.phone.includes(searchTerm));
-        dropdown.innerHTML = filtered.length === 0
-            ? '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>'
-            : filtered.map(c => `<div class="p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100" onclick="selectClient({id:'${c.id}',name:'${c.name}'})">
-                <div class="font-medium">${c.name}</div><div class="text-gray-500 text-xs">${c.phone}</div></div>`).join('');
-        dropdown.classList.remove('hidden');
-    }
 
-    function selectClient(client) {
-        document.getElementById('clientSearch').value = client.name;
-        document.getElementById('selectedClientId').value = client.id;
-        document.getElementById('clientDropdown').classList.add('hidden');
-    }
+        function selectProduct(p) {
+            document.getElementById('productSearch').value = p.name;
+            document.getElementById('selectedProductId').value = p.id;
+    =======
+            const term = document.getElementById('productSearchInput').value.toLowerCase().trim();
+            const dropdown = document.getElementById('productDropdown');
+            document.getElementById('productSelect').value = '';
+            const filtered = term ? products.filter(p => p.name.toLowerCase().includes(term)) : products;
+            renderProductDropdown(filtered.slice(0, 50));
+            dropdown.classList.remove('hidden');
+        }
 
-    function showClientDropdown() {
-        if (document.getElementById('clientSearch').value.length > 0) searchClients();
-    }
+        function renderProductDropdown(items) {
+            const dropdown = document.getElementById('productDropdown');
+            if (!items.length) {
+                dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mahsulot topilmadi</div>';
+                return;
+            }
+            dropdown.innerHTML = items.map(p => `
+                <div class="p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100"
+                     onmousedown="selectProduct('${p.id}', \`${p.name.replace(/`/g, '')}\`)">
+                    <div class="font-medium">${p.name}</div>
+                    <div class="text-gray-500 text-xs">Mavjud: ${p.quantity}</div>
+                </div>`).join('');
+        }
 
-    function hideClientDropdown() {
-        setTimeout(() => document.getElementById('clientDropdown').classList.add('hidden'), 200);
-    }
+        function selectProduct(id, name) {
+            document.getElementById('productSearchInput').value = name;
+            document.getElementById('productSelect').value = id;
+    >>>>>>> 86becdb (...)
+            document.getElementById('productDropdown').classList.add('hidden');
+        }
+
+        function showProductDropdown() {
+    <<<<<<< HEAD
+            searchProducts();
+    =======
+            renderProductDropdown(products.slice(0, 50));
+            document.getElementById('productDropdown').classList.remove('hidden');
+    >>>>>>> 86becdb (...)
+        }
+
+        function hideProductDropdown() {
+            setTimeout(() => document.getElementById('productDropdown').classList.add('hidden'), 200);
+        }
+
+        function searchClients() {
+            const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
+            const dropdown = document.getElementById('clientDropdown');
+            if (searchTerm.length === 0) {
+                dropdown.innerHTML = '';
+                dropdown.classList.add('hidden');
+                return;
+            }
+            const filtered = clients.filter(c => c.name.toLowerCase().includes(searchTerm) || c.phone.includes(searchTerm));
+            dropdown.innerHTML = filtered.length === 0
+                ? '<div class="p-3 text-gray-500 text-sm">Mijoz topilmadi</div>'
+                : filtered.map(c => `<div class="p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100" onclick="selectClient({id:'${c.id}',name:'${c.name}'})">
+                    <div class="font-medium">${c.name}</div><div class="text-gray-500 text-xs">${c.phone}</div></div>`).join('');
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectClient(client) {
+            document.getElementById('clientSearch').value = client.name;
+            document.getElementById('selectedClientId').value = client.id;
+            document.getElementById('clientDropdown').classList.add('hidden');
+        }
+
+        function showClientDropdown() {
+            if (document.getElementById('clientSearch').value.length > 0) searchClients();
+        }
+
+        function hideClientDropdown() {
+            setTimeout(() => document.getElementById('clientDropdown').classList.add('hidden'), 200);
+        }
 </script>
 
 {% endblock %}
