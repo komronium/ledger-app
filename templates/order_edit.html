@@ -363,11 +363,7 @@
 
         function showEditReceipt() {
             const customer = document.getElementById('clientSearch').value;
-    <<<<<<< HEAD
             const productName = document.getElementById('productSearch').value || '';
-    =======
-            const productName = document.getElementById('productSearchInput').value || '';
-    >>>>>>> 86becdb (...)
             const qty = parseFloat(document.getElementById('quantity').value) || 0;
             const price = parseFloat(document.getElementById('price').value) || 0;
             const total = qty * price;
@@ -403,20 +399,13 @@
             {% endfor %}
         ];
 
-    <<<<<<< HEAD
         let productsList = [
             {% for p in products %}
             { 'id': '{{ p.id }}', 'name': '{{ p.name|escapejs }}', 'price': {{ p.price|default:0 }}, 'quantity': {{ p.quantity|default:0 }} },
-    =======
-        let products = [
-            {% for product in products %}
-            {'id': '{{ product.id }}', 'name': '{{ product.name|escapejs }}', 'quantity': {{ product.quantity }}, 'price': {{ product.price }}},
-    >>>>>>> 86becdb (...)
             {% endfor %}
         ];
 
         function searchProducts() {
-    <<<<<<< HEAD
             const term = document.getElementById('productSearch').value.toLowerCase();
             const dropdown = document.getElementById('productDropdown');
             const filtered = term.length === 0
@@ -441,43 +430,11 @@
         function selectProduct(p) {
             document.getElementById('productSearch').value = p.name;
             document.getElementById('selectedProductId').value = p.id;
-    =======
-            const term = document.getElementById('productSearchInput').value.toLowerCase().trim();
-            const dropdown = document.getElementById('productDropdown');
-            document.getElementById('productSelect').value = '';
-            const filtered = term ? products.filter(p => p.name.toLowerCase().includes(term)) : products;
-            renderProductDropdown(filtered.slice(0, 50));
-            dropdown.classList.remove('hidden');
-        }
-
-        function renderProductDropdown(items) {
-            const dropdown = document.getElementById('productDropdown');
-            if (!items.length) {
-                dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mahsulot topilmadi</div>';
-                return;
-            }
-            dropdown.innerHTML = items.map(p => `
-                <div class="p-3 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100"
-                     onmousedown="selectProduct('${p.id}', \`${p.name.replace(/`/g, '')}\`)">
-                    <div class="font-medium">${p.name}</div>
-                    <div class="text-gray-500 text-xs">Mavjud: ${p.quantity}</div>
-                </div>`).join('');
-        }
-
-        function selectProduct(id, name) {
-            document.getElementById('productSearchInput').value = name;
-            document.getElementById('productSelect').value = id;
-    >>>>>>> 86becdb (...)
             document.getElementById('productDropdown').classList.add('hidden');
         }
 
         function showProductDropdown() {
-    <<<<<<< HEAD
             searchProducts();
-    =======
-            renderProductDropdown(products.slice(0, 50));
-            document.getElementById('productDropdown').classList.remove('hidden');
-    >>>>>>> 86becdb (...)
         }
 
         function hideProductDropdown() {

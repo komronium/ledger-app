@@ -363,12 +363,6 @@
 
 <script>
     let pendingOrders = [];
-    let allProducts = [
-        {% for product in products %}
-        {id: '{{ product.id }}', name: '{{ product.name|escapejs }}', price: {{ product.price }}, quantity: {{ product.quantity }}, promo_buy: '{{ product.promo_buy|default:"" }}', promo_free: '{{ product.promo_free|default:"" }}'},
-        {% endfor %}
-    ];
-    let selectedProduct = null;
 
     function syncTooltipVisibility() {
         const warn = document.getElementById('quantityWarning');
@@ -378,87 +372,25 @@
         tooltip.classList.toggle('hidden', !anyVisible);
     }
 
-<<<<<<< HEAD
     function autoFillPrice() {
         const price = document.getElementById('selectedProductPrice').value || '';
         const qty = document.getElementById('selectedProductQty').value || '0';
         if (price) {
             document.getElementById('price').value = price;
-=======
-    function searchProducts() {
-        const term = document.getElementById('productSearchInput').value.toLowerCase().trim();
-        const dropdown = document.getElementById('productDropdown');
-        document.getElementById('productSelect').value = '';
-        selectedProduct = null;
-        const filtered = term ? allProducts.filter(p => p.name.toLowerCase().includes(term)) : allProducts;
-        renderProductDropdown(filtered.slice(0, 50));
-        dropdown.classList.remove('hidden');
-    }
-
-    function renderProductDropdown(items) {
-        const dropdown = document.getElementById('productDropdown');
-        if (!items.length) {
-            dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">Mahsulot topilmadi</div>';
-            return;
-        }
-        dropdown.innerHTML = items.map(p => `
-            <div class="p-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100"
-                 onmousedown="selectProductOpt('${p.id}')">
-                <div class="font-medium text-gray-800">${p.name}</div>
-                <div class="text-xs text-gray-500">Mavjud: ${p.quantity} · ${Number(p.price).toLocaleString('uz-UZ')} so'm</div>
-            </div>`).join('');
-    }
-
-    function selectProductOpt(id) {
-        const p = allProducts.find(x => String(x.id) === String(id));
-        if (!p) return;
-        selectedProduct = p;
-        document.getElementById('productSearchInput').value = p.name + ' (' + p.quantity + ')';
-        document.getElementById('productSelect').value = p.id;
-        document.getElementById('productDropdown').classList.add('hidden');
-        autoFillFromSelection();
-    }
-
-    function showProductDropdown() {
-        renderProductDropdown(allProducts.slice(0, 50));
-        document.getElementById('productDropdown').classList.remove('hidden');
-    }
-
-    function hideProductDropdown() {
-        setTimeout(() => document.getElementById('productDropdown').classList.add('hidden'), 200);
-    }
-
-    function autoFillFromSelection() {
-        const p = selectedProduct;
-        const warningDiv = document.getElementById('quantityWarning');
-        const promoDiv = document.getElementById('promoInfo');
-        if (!p) {
-            warningDiv.classList.add('hidden');
-            promoDiv.classList.add('hidden');
-            syncTooltipVisibility();
-            return;
-        }
-        if (p.price) {
-            document.getElementById('price').value = p.price;
->>>>>>> 86becdb (...)
             calculateTotal();
         }
-        if (p.quantity > 0) {
-            warningDiv.textContent = 'Mavjud: ' + parseInt(p.quantity).toLocaleString();
+        const warningDiv = document.getElementById('quantityWarning');
+        if (qty && parseInt(qty) > 0) {
+            warningDiv.textContent = 'Mavjud: ' + parseInt(qty).toLocaleString();
             warningDiv.classList.remove('hidden');
         } else {
             warningDiv.classList.add('hidden');
         }
-<<<<<<< HEAD
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
             promoDiv.textContent = 'Aksiya: ' + promoBuy + '+' + promoFree + ' (har ' + promoBuy + ' tadan ' + promoFree + ' ta bepul)';
-=======
-        if (p.promo_buy && p.promo_free) {
-            promoDiv.textContent = 'Aksiya: ' + p.promo_buy + '+' + p.promo_free + ' (har ' + p.promo_buy + ' tadan ' + p.promo_free + ' ta bepul)';
->>>>>>> 86becdb (...)
             promoDiv.classList.remove('hidden');
         } else {
             promoDiv.classList.add('hidden');
@@ -473,13 +405,8 @@
     }
 
     function updatePromoPreview() {
-<<<<<<< HEAD
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
-=======
-        const promoBuy = selectedProduct ? selectedProduct.promo_buy : '';
-        const promoFree = selectedProduct ? selectedProduct.promo_free : '';
->>>>>>> 86becdb (...)
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const promoDiv = document.getElementById('promoInfo');
         if (promoBuy && promoFree) {
@@ -509,17 +436,10 @@
     }
 
     function validateQuantity() {
-<<<<<<< HEAD
         const availableQty = parseInt(document.getElementById('selectedProductQty').value || 0);
         const requestedQty = parseInt(document.getElementById('quantity').value) || 0;
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
-=======
-        const availableQty = parseInt(selectedProduct?.quantity || 0);
-        const requestedQty = parseInt(document.getElementById('quantity').value) || 0;
-        const promoBuy = selectedProduct?.promo_buy || '';
-        const promoFree = selectedProduct?.promo_free || '';
->>>>>>> 86becdb (...)
         const warningDiv = document.getElementById('quantityWarning');
 
         const freeCount = getPromoFreeCount(requestedQty, promoBuy, promoFree);
@@ -549,15 +469,9 @@
     function addOrderToList() {
         const clientId = document.getElementById('selectedClientId').value;
         const clientName = document.getElementById('clientSearch').value;
-<<<<<<< HEAD
         const productId = document.getElementById('selectedProductId').value;
         const productName = document.getElementById('selectedProductName').value;
         const availableQty = parseInt(document.getElementById('selectedProductQty').value || 0);
-=======
-        const productId = document.getElementById('productSelect').value;
-        const productName = selectedProduct?.name || '';
-        const availableQty = parseInt(selectedProduct?.quantity || 0);
->>>>>>> 86becdb (...)
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const price = parseInt(document.getElementById('price').value) || 0;
 
@@ -566,14 +480,8 @@
             return;
         }
 
-<<<<<<< HEAD
         const promoBuy = document.getElementById('selectedProductPromoBuy').value || '';
         const promoFree = document.getElementById('selectedProductPromoFree').value || '';
-=======
-        // Validate quantity (aksiya bepul mahsulotlarni ham hisobga olgan holda)
-        const promoBuy = selectedProduct?.promo_buy || '';
-        const promoFree = selectedProduct?.promo_free || '';
->>>>>>> 86becdb (...)
         const freeCount = getPromoFreeCount(quantity, promoBuy, promoFree);
         const totalToDeduct = quantity + freeCount;
         if (totalToDeduct > availableQty) {
@@ -600,7 +508,6 @@
         document.getElementById('quantity').value = '';
         document.getElementById('price').value = '';
         document.getElementById('grandTotal').value = '';
-<<<<<<< HEAD
         document.getElementById('productSearch').value = '';
         document.getElementById('selectedProductId').value = '';
         document.getElementById('selectedProductName').value = '';
@@ -611,11 +518,6 @@
         document.getElementById('quantityWarning').classList.add('hidden');
         document.getElementById('promoInfo').classList.add('hidden');
         syncTooltipVisibility();
-=======
-        document.getElementById('productSearchInput').value = '';
-        document.getElementById('productSelect').value = '';
-        selectedProduct = null;
->>>>>>> 86becdb (...)
     }
 
     function removeOrder(index) {
@@ -789,7 +691,7 @@
         const term = document.getElementById('filterProductSearch').value.toLowerCase().trim();
         const dropdown = document.getElementById('filterProductDropdown');
         document.getElementById('filterProduct').value = '';
-        const filtered = term ? allProducts.filter(p => p.name.toLowerCase().includes(term)) : allProducts;
+        const filtered = term ? productsList.filter(p => p.name.toLowerCase().includes(term)) : productsList;
         renderFilterProductDropdown(filtered.slice(0, 50));
         dropdown.classList.remove('hidden');
     }
@@ -817,7 +719,7 @@
     }
 
     function showFilterProductDropdown() {
-        renderFilterProductDropdown(allProducts.slice(0, 50));
+        renderFilterProductDropdown(productsList.slice(0, 50));
         document.getElementById('filterProductDropdown').classList.remove('hidden');
     }
 
