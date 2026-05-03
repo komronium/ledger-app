@@ -16,25 +16,34 @@ def load_env():
 
 class Settings:
     """Bot settings"""
-    
+
     # Telegram Bot
     BOT_TOKEN = decouple_config('BOT_TOKEN', default='')
-    
+
+    # Network — proxy & timeouts (helpful when the server's network
+    # blocks/throttles Telegram API; e.g. Russia-hosted VPS)
+    # Examples:
+    #   socks5://user:pass@1.2.3.4:1080
+    #   http://user:pass@1.2.3.4:8080
+    BOT_PROXY_URL = decouple_config('BOT_PROXY_URL', default='')
+    BOT_REQUEST_TIMEOUT = decouple_config('BOT_REQUEST_TIMEOUT', default=60, cast=int)
+    BOT_POLLING_TIMEOUT = decouple_config('BOT_POLLING_TIMEOUT', default=30, cast=int)
+
     # Django Database
     DB_NAME = decouple_config('DB_NAME', default='db.sqlite3')
     DB_PATH = decouple_config('DB_PATH', default='../db.sqlite3')
-    
+
     # Logging
     LOG_LEVEL = decouple_config('LOG_LEVEL', default='INFO')
-    
+
     # PDF Settings
     PDF_TEMP_DIR = Path(__file__).parent.parent.parent / 'temp_pdfs'
-    
+
     def __init__(self):
         """Validate settings on initialization"""
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN is not set in environment variables")
-        
+
         # Create temp directory if it doesn't exist
         self.PDF_TEMP_DIR.mkdir(exist_ok=True)
 

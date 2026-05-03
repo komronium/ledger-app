@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from aiogram import Dispatcher, Bot, F
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.types import BotCommand
 
 from bot.config.settings import load_env, get_settings
@@ -23,6 +24,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def build_session(settings) -> AiohttpSession:
+    """Build aiohttp session with optional proxy and longer timeout.
+
+    Russia-hosted servers often have flaky access to api.telegram.org.
+    A proxy outside RU plus a generous request timeout keeps polling alive.
+    """
+    timeout = max(int(settings.BOT_REQUEST_TIMEOUT), settings.BOT_POLLING_TIMEOUT + 10)
+    proxy = settings.BOT_PROXY_URL.strip() if settings.BOT_PROXY_URL else None
+
+    if proxy:
+        logger.info(f"Using proxy for Telegram API (timeout={timeout}s)")
+        return AiohttpSession(proxy=proxy, timeout=timeout)
+    logger.info(f"Direct connection to Telegram API (timeout={timeout}s)")
+    return AiohttpSession(timeout=timeout)
+
+
 async def set_bot_commands(bot: Bot):
     """Set bot commands"""
     commands = [
@@ -33,34 +50,35 @@ async def set_bot_commands(bot: Bot):
     logger.info("Bot commands set successfully")
 
 
-async def main():
-    """Main function"""
-    bot = None
+async def run_polling(settings) -> None:
+    bot = Bot(token=settings.BOT_TOKEN, session=build_session(settings))
+    dp = Dispatcher()
+    dp.message.middleware(LoggingMiddleware())
+    dp.include_router(start_router)
+    dp.include_router(phone_router)
+
     try:
-        # Load environment variables
+        await set_bot_commands(bot)
+    except Exception as e:
+        # Don't crash on slow first network round-trip; commands can be set later
+        logger.warning(f"set_my_commands failed (will continue): {e}")
+
+    logger.info("Bot is running... (polling mode)")
+    try:
+        await dp.start_polling(
+            bot,
+            allowed_updates=dp.resolve_used_update_types(),
+            polling_timeout=settings.BOT_POLLING_TIMEOUT,
+        )
+    finally:
+        await bot.session.close()
+
+
+async def main():
+    """Main function with reconnect loop for unstable networks."""
+    try:
         load_env()
         settings = get_settings()
-        
-        logger.info("Starting Savdo Bot...")
-        
-        # Initialize bot and dispatcher
-        bot = Bot(token=settings.BOT_TOKEN)
-        dp = Dispatcher()
-        
-        # Setup middlewares
-        dp.message.middleware(LoggingMiddleware())
-        
-        # Setup routers
-        dp.include_router(start_router)
-        dp.include_router(phone_router)
-        
-        # Set bot commands
-        await set_bot_commands(bot)
-        
-        # Start polling
-        logger.info("Bot is running... (polling mode)")
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
-        
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
         logger.error("Please set up .env file first:")
@@ -68,12 +86,20 @@ async def main():
         logger.error("  2. Edit .env and add BOT_TOKEN")
         logger.error("  3. Get token from @BotFather on Telegram")
         sys.exit(1)
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        sys.exit(1)
-    finally:
-        if bot is not None:
-            await bot.session.close()
+
+    logger.info("Starting Savdo Bot...")
+
+    backoff = 5
+    while True:
+        try:
+            await run_polling(settings)
+            return  # graceful stop
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            logger.error(f"Polling crashed: {e}. Reconnecting in {backoff}s...", exc_info=True)
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 60)
 
 
 if __name__ == "__main__":
