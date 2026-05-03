@@ -50,12 +50,18 @@ async def set_bot_commands(bot: Bot):
     logger.info("Bot commands set successfully")
 
 
-async def run_polling(settings) -> None:
-    bot = Bot(token=settings.BOT_TOKEN, session=build_session(settings))
+def build_dispatcher() -> Dispatcher:
+    """Build the dispatcher once. Routers can only be attached to a single
+    parent, so reuse this dispatcher across reconnect attempts."""
     dp = Dispatcher()
     dp.message.middleware(LoggingMiddleware())
     dp.include_router(start_router)
     dp.include_router(phone_router)
+    return dp
+
+
+async def run_polling(settings, dp: Dispatcher) -> None:
+    bot = Bot(token=settings.BOT_TOKEN, session=build_session(settings))
 
     try:
         await set_bot_commands(bot)
@@ -89,10 +95,12 @@ async def main():
 
     logger.info("Starting Savdo Bot...")
 
+    dp = build_dispatcher()
+
     backoff = 5
     while True:
         try:
-            await run_polling(settings)
+            await run_polling(settings, dp)
             return  # graceful stop
         except (KeyboardInterrupt, SystemExit):
             raise
