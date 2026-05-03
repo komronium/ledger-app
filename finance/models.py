@@ -108,14 +108,23 @@ class Order(models.Model):
         return 0
 
     def save(self, *args, **kwargs):
+        if self.quantity is None or self.quantity <= 0:
+            raise ValueError("Order.quantity must be positive")
+        if self.price_per_kg is None or self.price_per_kg < 0:
+            raise ValueError("Order.price_per_kg must be non-negative")
         self.total_price = self.quantity * self.price_per_kg
-        self.remaining_debt = self.total_price
-
         is_new = self.pk is None
-        if is_new and self.product:
-            free_count = self._compute_promo_free(self.product, self.quantity)
-            self.product.quantity -= (self.quantity + free_count)
-            self.product.save()
+        if is_new:
+            self.remaining_debt = self.total_price
+            if self.product:
+                free_count = self._compute_promo_free(self.product, self.quantity)
+                if self.product.quantity < self.quantity + free_count:
+                    raise ValueError(
+                        f"Omborda {self.product.quantity} ta mavjud, "
+                        f"{self.quantity + free_count} ta kerak."
+                    )
+                self.product.quantity -= (self.quantity + free_count)
+                self.product.save()
         super().save(*args, **kwargs)
 
 
@@ -276,8 +285,10 @@ class SupplierPayment(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-        if self.payment_type == self.PaymentTypeChoices.BARTER and self.barter_product:
-            self.amount = self.barter_product.price * self.barter_quantity
+        # Compute amount from product price ONLY on creation, so editing a
+        # product's price later doesn't retroactively rewrite history.
+        if is_new and self.payment_type == self.PaymentTypeChoices.BARTER and self.barter_product:
+            self.amount = (self.barter_product.price or 0) * self.barter_quantity
         super().save(*args, **kwargs)
         if is_new and self.payment_type == self.PaymentTypeChoices.BARTER and self.barter_product:
             self.barter_product.quantity -= self.barter_quantity

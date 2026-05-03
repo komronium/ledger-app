@@ -164,22 +164,13 @@
                         >
                             Bekor qilish
                         </button>
-                        <form
-                            action="{% url 'order_delete' order.id %}"
-                            method="GET"
-                            onsubmit="
-                                return confirm(
-                                    'Buyurtmani o\'chirishni tasdiqlaysizmi?',
-                                );
-                            "
+                        <a
+                            href="{% url 'order_delete' order.id %}"
+                            onclick="return confirm('Buyurtmani o\'chirishni tasdiqlaysizmi?');"
+                            class="w-full block text-center py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-100 transition-all"
                         >
-                            <button
-                                type="submit"
-                                class="w-full py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-100 transition-all"
-                            >
-                                O'chirish
-                            </button>
-                        </form>
+                            O'chirish
+                        </a>
                     </div>
                 </div>
             </div>

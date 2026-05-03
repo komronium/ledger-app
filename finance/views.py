@@ -44,7 +44,7 @@ def _is_admin(user):
     try:
         return user.profile.role == UserProfile.ROLE_ADMIN
     except Exception:
-        return True
+        return False
 
 
 def _to_decimal(value):
@@ -135,7 +135,11 @@ class OrderView(LoginRequiredMixin, View):
                 }
             )
 
-        combined_data.sort(key=lambda x: x["order_date"])
+        # Stable order: by date, then orders before payments (same day),
+        # then by row id (insertion order). Keeps the cumulative-debt walk
+        # deterministic across requests.
+        type_priority = {"order": 0, "payment": 1}
+        combined_data.sort(key=lambda x: (x["order_date"], type_priority.get(x["type"], 9), x["id"]))
         return combined_data
 
     def _calculate_cumulative_debt(self, combined_data, customer):
@@ -263,6 +267,8 @@ class OrderView(LoginRequiredMixin, View):
         return render(request, self.template_name, context=context)
 
     def post(self, request):
+        from django.db import transaction
+
         orders_json = request.POST.get("orders_json", "[]")
         try:
             orders_data = json.loads(orders_json)
@@ -275,34 +281,49 @@ class OrderView(LoginRequiredMixin, View):
                 customer = Customer.objects.get(id=item.get("customer_id"))
                 product = Product.objects.get(id=item.get("product_id"))
                 requested_quantity = int(item.get("quantity", 0))
-
-                free_count = 0
-                if product.promo_buy and product.promo_free and product.promo_buy > 0:
-                    free_count = (
-                        requested_quantity // product.promo_buy
-                    ) * product.promo_free
-                total_to_deduct = requested_quantity + free_count
-                if product.quantity < total_to_deduct:
-                    if free_count:
-                        errors.append(
-                            f"{product.name}: {requested_quantity} so'raldi + {free_count} aksiya = {total_to_deduct} kerak, lekin {product.quantity} mavjud."
-                        )
-                    else:
-                        errors.append(
-                            f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud."
-                        )
-                    continue
-
-                order = Order(
-                    customer=customer,
-                    product=product,
-                    quantity=requested_quantity,
-                    price_per_kg=int(item.get("price_per_kg", 0)),
-                )
-                order.save()
-                customer.total_debt += order.remaining_debt
-                customer.save()
+                price_per_kg = int(item.get("price_per_kg", 0))
             except (Customer.DoesNotExist, Product.DoesNotExist, ValueError, TypeError):
+                errors.append("Buyurtma ma'lumotlari noto'g'ri (mijoz, mahsulot yoki miqdor).")
+                continue
+
+            if requested_quantity <= 0:
+                errors.append(f"{product.name}: miqdor 0 dan katta bo'lishi kerak.")
+                continue
+            if price_per_kg < 0:
+                errors.append(f"{product.name}: narx manfiy bo'lishi mumkin emas.")
+                continue
+
+            try:
+                with transaction.atomic():
+                    # Re-fetch with row lock so concurrent orders don't race
+                    product = Product.objects.select_for_update().get(pk=product.pk)
+                    free_count = 0
+                    if product.promo_buy and product.promo_free and product.promo_buy > 0:
+                        free_count = (requested_quantity // product.promo_buy) * product.promo_free
+                    total_to_deduct = requested_quantity + free_count
+                    if product.quantity < total_to_deduct:
+                        if free_count:
+                            errors.append(
+                                f"{product.name}: {requested_quantity} so'raldi + {free_count} aksiya = {total_to_deduct} kerak, lekin {product.quantity} mavjud."
+                            )
+                        else:
+                            errors.append(
+                                f"{product.name}: {requested_quantity} kg so'raldi, lekin {product.quantity} kg mavjud."
+                            )
+                        continue
+
+                    order = Order(
+                        customer=customer,
+                        product=product,
+                        quantity=requested_quantity,
+                        price_per_kg=price_per_kg,
+                    )
+                    order.save()
+                    Customer.objects.filter(pk=customer.pk).update(
+                        total_debt=models.F('total_debt') + order.remaining_debt
+                    )
+            except Exception as e:
+                errors.append(f"Buyurtmani saqlashda xatolik: {e}")
                 continue
 
         if errors:
@@ -340,18 +361,23 @@ class OrderEditView(LoginRequiredMixin, View):
 
 
 class OrderDeleteView(LoginRequiredMixin, View):
-    def get(self, request, pk):
+    def post(self, request, pk):
+        from django.db import transaction
         order = get_object_or_404(Order, id=pk)
-        customer = order.customer
-        if customer:
-            customer.total_debt -= order.remaining_debt
-            customer.save()
-        if order.product:
-            free_count = order._compute_promo_free(order.product, order.quantity)
-            order.product.quantity += order.quantity + free_count
-            order.product.save()
-        order.delete()
+        with transaction.atomic():
+            customer = order.customer
+            if customer:
+                customer.total_debt -= order.remaining_debt
+                customer.save()
+            if order.product:
+                free_count = order._compute_promo_free(order.product, order.quantity)
+                order.product.quantity += order.quantity + free_count
+                order.product.save()
+            order.delete()
         return redirect("dashboard")
+
+    # GET kept for backwards-compat with the existing edit-page link
+    get = post
 
 
 class CustomerView(AdminOnlyMixin, View):
@@ -402,6 +428,11 @@ class CustomerDeleteView(AdminOnlyMixin, View):
 class DebtView(AdminOnlyMixin, View):
     template_name = "debt.html"
 
+    def _available_years(self):
+        years = {d.year for d in PaymentHistory.objects.dates("paid_at", "year")}
+        years.add(date.today().year)
+        return sorted(years)
+
     def get(self, request):
         selected_year = request.GET.get("year", str(date.today().year))
 
@@ -436,6 +467,7 @@ class DebtView(AdminOnlyMixin, View):
             "date_to": date_to,
             "payment_type_choices": PaymentHistory.PaymentTypeChoices.choices,
             "selected_year": selected_year,
+            "available_years": self._available_years(),
             "page": "debt",
         }
         return render(request, self.template_name, context=context)
@@ -476,19 +508,25 @@ class PaymentEditView(AdminOnlyMixin, View):
 
 
 class PaymentDeleteView(AdminOnlyMixin, View):
-    def get(self, request, pk):
+    def post(self, request, pk):
+        from django.db import transaction
         payment = get_object_or_404(PaymentHistory, id=pk)
-        customer = payment.customer
-        customer.total_debt += int(payment.amount)
-        customer.save()
-        if (
-            payment.payment_type == PaymentHistory.PaymentTypeChoices.BARTER
-            and payment.barter_product
-        ):
-            payment.barter_product.quantity -= payment.barter_quantity
-            payment.barter_product.save()
-        payment.delete()
+        with transaction.atomic():
+            customer = payment.customer
+            customer.total_debt += int(payment.amount)
+            customer.save()
+            if (
+                payment.payment_type == PaymentHistory.PaymentTypeChoices.BARTER
+                and payment.barter_product
+            ):
+                payment.barter_product.refresh_from_db()
+                payment.barter_product.quantity -= payment.barter_quantity
+                payment.barter_product.save()
+            payment.delete()
         return redirect("debts")
+
+    # GET kept for backwards-compat with existing links in templates
+    get = post
 
 
 class ProductView(AdminOnlyMixin, View):
@@ -599,13 +637,21 @@ class StatisticsView(AdminOnlyMixin, View):
         "Dekabr",
     ]
 
+    def _available_years(self):
+        years = {d.year for d in Order.objects.dates("order_date", "year")}
+        years |= {d.year for d in Purchase.objects.dates("purchase_date", "year")}
+        years |= {d.year for d in PaymentHistory.objects.dates("paid_at", "year")}
+        years |= {d.year for d in SupplierPayment.objects.dates("paid_at", "year")}
+        years.add(date.today().year)
+        return sorted(years)
+
     def get(self, request):
-        selected_year = request.GET.get("year", "2026")
+        selected_year = request.GET.get("year", str(date.today().year))
 
         try:
             selected_year = int(selected_year)
         except (ValueError, TypeError):
-            selected_year = 2026
+            selected_year = date.today().year
 
         orders = Order.objects.filter(order_date__year=selected_year)
         customers = Customer.objects.all()
@@ -728,6 +774,7 @@ class StatisticsView(AdminOnlyMixin, View):
             "total_expenses": total_expenses,
             "net_profit": total_revenue - total_purchased_all - total_expenses,
             "selected_year": selected_year,
+            "available_years": self._available_years(),
             "monthly_data": monthly_data,
             "top_products": [p for p in top_products if p.sold_quantity][:5],
             "top_debtors": top_debtors,
@@ -828,6 +875,8 @@ class SupplierDetailView(AdminOnlyMixin, View):
         )
 
     def post(self, request, pk):
+        from django.db import transaction
+
         supplier = get_object_or_404(Supplier, pk=pk)
         action = request.POST.get("action")
 
@@ -853,6 +902,8 @@ class SupplierDetailView(AdminOnlyMixin, View):
                 quantity = int(request.POST.get("quantity", 0))
             except (ValueError, TypeError):
                 return redirect("supplier_detail", pk=pk)
+            if quantity <= 0:
+                return redirect("supplier_detail", pk=pk)
 
             purchase = Purchase(
                 supplier=supplier,
@@ -869,6 +920,12 @@ class SupplierDetailView(AdminOnlyMixin, View):
                     purchase.barter_quantity = int(barter_quantity)
                 except (ValueError, TypeError):
                     purchase.barter_quantity = 0
+                if purchase.barter_quantity <= 0:
+                    return redirect("supplier_detail", pk=pk)
+                # Verify we actually have enough of the bartered product to give away
+                bp = Product.objects.filter(pk=purchase.barter_product_id).first()
+                if not bp or bp.quantity < purchase.barter_quantity:
+                    return redirect("supplier_detail", pk=pk)
             else:
                 if usd_amount and exchange_rate:
                     purchase.usd_price_per_unit = usd_amount
@@ -880,31 +937,60 @@ class SupplierDetailView(AdminOnlyMixin, View):
                     except (ValueError, TypeError):
                         purchase.price_per_unit = 0
 
-            purchase.save()
+            with transaction.atomic():
+                purchase.save()
 
         elif action == "payment":
-            usd_amount = _to_decimal(request.POST.get("usd_amount"))
-            exchange_rate = _to_decimal(request.POST.get("exchange_rate"))
-            sum_amount = request.POST.get("amount")
+            payment_type = request.POST.get("payment_type") or None
 
-            if usd_amount and exchange_rate:
-                final_amount = int(usd_amount * exchange_rate)
-            else:
+            if payment_type == SupplierPayment.PaymentTypeChoices.BARTER:
+                # Barter: we give supplier product P; debt reduced by P.price * qty
+                barter_product_id = request.POST.get("barter_product")
                 try:
-                    final_amount = int(sum_amount)
+                    barter_quantity = int(request.POST.get("barter_quantity", 0))
                 except (ValueError, TypeError):
                     return redirect("supplier_detail", pk=pk)
-
-            payment = SupplierPayment(
-                supplier=supplier,
-                amount=final_amount,
-                payment_type=request.POST.get("payment_type") or None,
-                comment=request.POST.get("comment", ""),
-            )
-            if usd_amount and exchange_rate:
-                payment.usd_amount = usd_amount
-                payment.exchange_rate = exchange_rate
-            payment.save()
+                if not barter_product_id or barter_quantity <= 0:
+                    return redirect("supplier_detail", pk=pk)
+                with transaction.atomic():
+                    try:
+                        barter_product = Product.objects.select_for_update().get(pk=barter_product_id)
+                    except Product.DoesNotExist:
+                        return redirect("supplier_detail", pk=pk)
+                    if barter_product.quantity < barter_quantity:
+                        return redirect("supplier_detail", pk=pk)
+                    payment = SupplierPayment(
+                        supplier=supplier,
+                        amount=(barter_product.price or 0) * barter_quantity,
+                        payment_type=payment_type,
+                        barter_product=barter_product,
+                        barter_quantity=barter_quantity,
+                        comment=request.POST.get("comment", ""),
+                    )
+                    payment.save()
+            else:
+                usd_amount = _to_decimal(request.POST.get("usd_amount"))
+                exchange_rate = _to_decimal(request.POST.get("exchange_rate"))
+                sum_amount = request.POST.get("amount")
+                if usd_amount and exchange_rate:
+                    final_amount = int(usd_amount * exchange_rate)
+                else:
+                    try:
+                        final_amount = int(sum_amount)
+                    except (ValueError, TypeError):
+                        return redirect("supplier_detail", pk=pk)
+                if final_amount <= 0:
+                    return redirect("supplier_detail", pk=pk)
+                payment = SupplierPayment(
+                    supplier=supplier,
+                    amount=final_amount,
+                    payment_type=payment_type,
+                    comment=request.POST.get("comment", ""),
+                )
+                if usd_amount and exchange_rate:
+                    payment.usd_amount = usd_amount
+                    payment.exchange_rate = exchange_rate
+                payment.save()
 
         return redirect("supplier_detail", pk=pk)
 

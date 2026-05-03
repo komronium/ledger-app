@@ -69,6 +69,8 @@ class OrderForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
+        from django.db import transaction
+
         order = super().save(commit=False)
         new_customer = Customer.objects.get(id=self.cleaned_data['customer_id'])
         new_product = Product.objects.get(id=self.cleaned_data['product_id'])
@@ -78,41 +80,50 @@ class OrderForm(forms.ModelForm):
         if not commit:
             return order
 
-        if self.instance.pk:
-            old_order = Order.objects.select_related('customer', 'product').get(pk=self.instance.pk)
-            old_customer = old_order.customer
-            old_product = old_order.product
-            old_quantity = old_order.quantity
-            old_remaining_debt = old_order.remaining_debt
+        with transaction.atomic():
+            if self.instance.pk:
+                old_order = Order.objects.select_related('customer', 'product').get(pk=self.instance.pk)
+                old_customer = old_order.customer
+                old_product = old_order.product
+                old_quantity = old_order.quantity
+                old_remaining_debt = old_order.remaining_debt
 
-            if old_product:
-                old_free = order._compute_promo_free(old_product, old_quantity)
-                old_product.quantity += (old_quantity + old_free)
-                old_product.save()
+                # 1) Restore the old product's stock
+                if old_product:
+                    old_free = order._compute_promo_free(old_product, old_quantity)
+                    old_product.quantity += (old_quantity + old_free)
+                    old_product.save()
 
-            new_free = order._compute_promo_free(new_product, order.quantity)
-            new_product.refresh_from_db()
-            new_product.quantity -= (order.quantity + new_free)
-            new_product.save()
+                # 2) Deduct stock for the new product/quantity
+                new_product.refresh_from_db()
+                new_free = order._compute_promo_free(new_product, order.quantity)
+                new_product.quantity -= (order.quantity + new_free)
+                new_product.save()
 
-            order.total_price = order.quantity * order.price_per_kg
-            order.remaining_debt = order.total_price
-            super(Order, order).save()
+                # 3) Recompute totals; preserve the difference between previous
+                # remaining_debt and the new total_price so partial payments
+                # already recorded are not wiped out.
+                new_total_price = order.quantity * order.price_per_kg
+                paid_off = old_order.total_price - old_remaining_debt  # may be 0
+                order.total_price = new_total_price
+                order.remaining_debt = max(new_total_price - paid_off, 0)
 
-            new_remaining_debt = order.remaining_debt
-            if old_customer and old_customer.pk != new_customer.pk:
-                old_customer.total_debt -= old_remaining_debt
-                old_customer.save()
-                new_customer.total_debt += new_remaining_debt
-                new_customer.save()
+                # Skip Order.save's inventory side-effects (we already did them)
+                super(Order, order).save()
+
+                # 4) Adjust customer debt by the change in remaining_debt
+                if old_customer and old_customer.pk != new_customer.pk:
+                    old_customer.total_debt -= old_remaining_debt
+                    old_customer.save()
+                    new_customer.total_debt += order.remaining_debt
+                    new_customer.save()
+                else:
+                    new_customer.total_debt += (order.remaining_debt - old_remaining_debt)
+                    new_customer.save()
             else:
-                debt_difference = new_remaining_debt - old_remaining_debt
-                new_customer.total_debt += debt_difference
+                order.save()
+                new_customer.total_debt += order.remaining_debt
                 new_customer.save()
-        else:
-            order.save()
-            new_customer.total_debt += order.remaining_debt
-            new_customer.save()
 
         return order
 
@@ -143,6 +154,7 @@ class CustomerForm(forms.ModelForm):
 
 class PaymentForm(forms.ModelForm):
     customer_id = forms.IntegerField()
+    payment_mode = forms.CharField(required=False)  # 'money' or 'barter' (from UI toggle)
     payment_amount = forms.CharField(required=False)
     usd_amount = forms.CharField(required=False)
     exchange_rate = forms.CharField(required=False)
@@ -154,21 +166,51 @@ class PaymentForm(forms.ModelForm):
         model = PaymentHistory
         fields = ['customer_id', 'payment_amount', 'payment_type', 'comment']
 
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get('customer_id'):
+            raise forms.ValidationError("Mijoz tanlanmagan.")
+        if not Customer.objects.filter(id=cleaned['customer_id']).exists():
+            raise forms.ValidationError("Tanlangan mijoz mavjud emas.")
+
+        # Barter mode comes from the UI toggle; force payment_type accordingly.
+        if cleaned.get('payment_mode') == 'barter':
+            cleaned['payment_type'] = PaymentHistory.PaymentTypeChoices.BARTER
+            barter_product_id = cleaned.get('barter_product_id')
+            qty = cleaned.get('barter_quantity') or 0
+            if not barter_product_id or qty <= 0:
+                raise forms.ValidationError("Barter uchun mahsulot va miqdor tanlang.")
+            try:
+                product = Product.objects.get(id=barter_product_id)
+            except Product.DoesNotExist:
+                raise forms.ValidationError("Tanlangan mahsulot mavjud emas.")
+            if product.quantity < qty:
+                raise forms.ValidationError(f"Omborda {product.quantity} ta mavjud, {qty} ta yetarli emas.")
+            cleaned['_barter_product'] = product
+        else:
+            usd = _to_decimal(cleaned.get('usd_amount'))
+            rate = _to_decimal(cleaned.get('exchange_rate'))
+            amt = _to_int(cleaned.get('payment_amount'), 0)
+            if not (usd and rate) and amt <= 0:
+                raise forms.ValidationError("To'lov summasi noto'g'ri.")
+        return cleaned
+
     def save(self, commit=True):
+        from django.db import transaction
+
         payment = super().save(commit=False)
         customer = Customer.objects.get(id=self.cleaned_data['customer_id'])
         payment.customer = customer
-
         payment_type = self.cleaned_data.get('payment_type')
 
         if payment_type == PaymentHistory.PaymentTypeChoices.BARTER:
-            barter_product_id = self.cleaned_data.get('barter_product_id')
-            barter_quantity = self.cleaned_data.get('barter_quantity') or 0
-            barter_product = Product.objects.get(id=barter_product_id)
-            unit_price = barter_product.price or 0
+            barter_product = self.cleaned_data['_barter_product']
+            barter_quantity = self.cleaned_data['barter_quantity']
             payment.barter_product = barter_product
             payment.barter_quantity = barter_quantity
-            payment.amount = unit_price * barter_quantity
+            # Snapshot price at save time so future product price changes
+            # don't retroactively rewrite history.
+            payment.amount = (barter_product.price or 0) * barter_quantity
             payment.usd_amount = None
             payment.exchange_rate = None
         else:
@@ -182,14 +224,18 @@ class PaymentForm(forms.ModelForm):
                 payment.amount = _to_int(self.cleaned_data.get('payment_amount'))
                 payment.usd_amount = None
                 payment.exchange_rate = None
+            payment.barter_product = None
+            payment.barter_quantity = 0
 
         if commit:
-            payment.save()
-            if payment_type == PaymentHistory.PaymentTypeChoices.BARTER and payment.barter_product:
-                payment.barter_product.quantity += payment.barter_quantity
-                payment.barter_product.save()
-            customer.total_debt -= int(payment.amount)
-            customer.save()
+            with transaction.atomic():
+                payment.save()
+                if payment_type == PaymentHistory.PaymentTypeChoices.BARTER and payment.barter_product:
+                    payment.barter_product.refresh_from_db()
+                    payment.barter_product.quantity += payment.barter_quantity
+                    payment.barter_product.save()
+                customer.total_debt -= int(payment.amount)
+                customer.save()
 
         return payment
 
@@ -214,23 +260,43 @@ class PaymentEditForm(forms.ModelForm):
                 self.fields['usd_amount'].initial = str(self.instance.usd_amount)
             if self.instance.exchange_rate is not None:
                 self.fields['exchange_rate'].initial = str(self.instance.exchange_rate)
+            if self.instance.barter_product_id:
+                self.fields['barter_product_id'].initial = self.instance.barter_product_id
+            if self.instance.barter_quantity:
+                self.fields['barter_quantity'].initial = self.instance.barter_quantity
+
+    def clean(self):
+        cleaned = super().clean()
+        ptype = cleaned.get('payment_type') or (self.instance.payment_type if self.instance.pk else None)
+        if ptype == PaymentHistory.PaymentTypeChoices.BARTER:
+            barter_product_id = cleaned.get('barter_product_id') or (self.instance.barter_product_id if self.instance.pk else None)
+            qty = cleaned.get('barter_quantity') or 0
+            if not barter_product_id or qty <= 0:
+                raise forms.ValidationError("Barter uchun mahsulot va miqdor tanlang.")
+            try:
+                cleaned['_barter_product'] = Product.objects.get(id=barter_product_id)
+            except Product.DoesNotExist:
+                raise forms.ValidationError("Tanlangan mahsulot mavjud emas.")
+        return cleaned
 
     def save(self, commit=True):
+        from django.db import transaction
+
         payment = super().save(commit=False)
-        old_amount = int(self.instance.amount) if self.instance.amount else 0
+        old_amount = int(self.instance.amount or 0)
         old_barter_product = self.instance.barter_product
         old_barter_quantity = self.instance.barter_quantity or 0
+        was_barter = self.instance.payment_type == PaymentHistory.PaymentTypeChoices.BARTER
 
         payment_type = self.cleaned_data.get('payment_type') or self.instance.payment_type
 
         if payment_type == PaymentHistory.PaymentTypeChoices.BARTER:
-            barter_product_id = self.cleaned_data.get('barter_product_id') or (old_barter_product.pk if old_barter_product else None)
-            new_barter_quantity = self.cleaned_data.get('barter_quantity') or old_barter_quantity
-            barter_product = Product.objects.get(id=barter_product_id) if barter_product_id else old_barter_product
-            unit_price = barter_product.price if barter_product else 0
+            barter_product = self.cleaned_data['_barter_product']
+            new_barter_quantity = int(self.cleaned_data.get('barter_quantity') or old_barter_quantity)
             payment.barter_product = barter_product
             payment.barter_quantity = new_barter_quantity
-            payment.amount = unit_price * new_barter_quantity
+            # Snapshot the live price on edit too — user is intentionally re-saving.
+            payment.amount = (barter_product.price or 0) * new_barter_quantity
             payment.usd_amount = None
             payment.exchange_rate = None
         else:
@@ -247,24 +313,24 @@ class PaymentEditForm(forms.ModelForm):
             payment.barter_product = None
             payment.barter_quantity = 0
 
-        if commit:
+        if not commit:
+            return payment
+
+        with transaction.atomic():
+            # 1) Adjust customer debt by amount delta
             new_amount = int(payment.amount)
-            amount_difference = new_amount - old_amount
             customer = payment.customer
-            customer.total_debt -= amount_difference
+            customer.total_debt -= (new_amount - old_amount)
             customer.save()
 
-            if old_barter_product and (
-                payment.barter_product_id != old_barter_product.pk
-                or payment.barter_quantity != old_barter_quantity
-            ):
-                old_barter_product.quantity -= old_barter_quantity
+            # 2) Inventory: revert old barter effect if any, then apply new
+            if was_barter and old_barter_product:
+                old_barter_product.refresh_from_db()
+                old_barter_product.quantity -= old_barter_quantity  # we received it; on reversal we "give it back"
                 old_barter_product.save()
-                if payment.barter_product:
-                    payment.barter_product.refresh_from_db()
-                    payment.barter_product.quantity += payment.barter_quantity
-                    payment.barter_product.save()
-            elif not old_barter_product and payment.barter_product:
+
+            if payment_type == PaymentHistory.PaymentTypeChoices.BARTER and payment.barter_product:
+                payment.barter_product.refresh_from_db()
                 payment.barter_product.quantity += payment.barter_quantity
                 payment.barter_product.save()
 

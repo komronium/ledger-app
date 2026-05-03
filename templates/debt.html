@@ -193,12 +193,10 @@
             <div class="flex items-center gap-3">
                 <span class="text-sm font-bold text-gray-800">To'lovlar tarixi</span>
                 <div class="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
-                    <a href="{% url 'debts' %}?year=2024"
-                        class="px-3 py-1 rounded-md text-xs font-semibold transition-all {% if selected_year == 2024 %}bg-white text-blue-600 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">2024</a>
-                    <a href="{% url 'debts' %}?year=2025"
-                        class="px-3 py-1 rounded-md text-xs font-semibold transition-all {% if selected_year == 2025 %}bg-white text-blue-600 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">2025</a>
-                    <a href="{% url 'debts' %}?year=2026"
-                        class="px-3 py-1 rounded-md text-xs font-semibold transition-all {% if selected_year == 2026 %}bg-white text-blue-600 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">2026</a>
+                    {% for y in available_years %}
+                    <a href="{% url 'debts' %}?year={{ y }}"
+                        class="px-3 py-1 rounded-md text-xs font-semibold transition-all {% if selected_year == y %}bg-white text-blue-600 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">{{ y }}</a>
+                    {% endfor %}
                 </div>
             </div>
             <button onclick="generatePDF()"
@@ -594,7 +592,7 @@
 
     let clients = [
         {% for customer in customers %}
-    { 'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}', 'debt': '{{ customer.total_debt|default:0 }}' },
+    { 'id': '{{ customer.id }}', 'name': '{{ customer.name|escapejs }}', 'phone': '{{ customer.phone|escapejs }}', 'debt': '{{ customer.total_debt|default:0 }}' },
     {% endfor %}
     ];
 </script>

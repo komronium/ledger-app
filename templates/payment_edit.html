@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <div id="barterEditFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div id="barterEditFields" class="grid grid-cols-1 md:grid-cols-2 gap-6" style="display:none">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Barter mahsuloti</label>
                 <select name="barter_product_id"
@@ -117,8 +117,8 @@
     function toggleBarterEdit() {
         const type = document.getElementById('editPaymentType').value;
         const isBarter = (type === 'barter');
-        document.getElementById('moneyAmountFields').classList.toggle('hidden', isBarter);
-        document.getElementById('barterEditFields').classList.toggle('hidden', !isBarter);
+        document.getElementById('moneyAmountFields').style.display = isBarter ? 'none' : 'grid';
+        document.getElementById('barterEditFields').style.display = isBarter ? 'grid' : 'none';
     }
     document.addEventListener('DOMContentLoaded', toggleBarterEdit);
 </script>

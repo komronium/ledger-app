@@ -729,7 +729,7 @@
 
     let clients = [
         {% for customer in customers %}
-    { 'id': '{{ customer.id }}', 'name': '{{ customer.name }}', 'phone': '{{ customer.phone }}' },
+    { 'id': '{{ customer.id }}', 'name': '{{ customer.name|escapejs }}', 'phone': '{{ customer.phone|escapejs }}' },
     {% endfor %}
         ]
 

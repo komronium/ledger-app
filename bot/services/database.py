@@ -181,8 +181,9 @@ class CustomerService:
                 'comment': payment.comment or '',
             })
         
-        # Sort by date
-        combined_data.sort(key=lambda x: x['date'])
+        # Stable order: by date, then orders before payments same day, then row id
+        type_priority = {'order': 0, 'payment': 1}
+        combined_data.sort(key=lambda x: (x['date'], type_priority.get(x['type'], 9), x['id']))
         
         # Calculate cumulative debt
         cumulative_debt = customer.total_debt
