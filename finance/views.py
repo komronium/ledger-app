@@ -997,18 +997,38 @@ class SupplierDetailView(AdminOnlyMixin, View):
 
 class PurchaseDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
+        from django.contrib import messages
+        from django.db import transaction
+
         purchase = get_object_or_404(Purchase, pk=pk)
         supplier_pk = purchase.supplier.pk
+
+        # Don't delete if removing the received stock would go negative
+        # (the goods have already been sold to customers).
         if purchase.product:
-            purchase.product.quantity -= purchase.quantity
-            purchase.product.save()
-        if (
-            purchase.purchase_type == Purchase.PurchaseTypeChoices.BARTER
-            and purchase.barter_product
-        ):
-            purchase.barter_product.quantity += purchase.barter_quantity
-            purchase.barter_product.save()
-        purchase.delete()
+            current = Product.objects.filter(pk=purchase.product.pk).values_list("quantity", flat=True).first() or 0
+            if current < purchase.quantity:
+                messages.error(
+                    request,
+                    f"Xaridni o'chirib bo'lmaydi: '{purchase.product.name}' "
+                    f"hozir omborda {current} ta, lekin xarid {purchase.quantity} ta edi "
+                    f"(qisman sotilgan). Avval mahsulotni qo'lda to'g'rilang."
+                )
+                return redirect("supplier_detail", pk=supplier_pk)
+
+        with transaction.atomic():
+            if purchase.product:
+                Product.objects.filter(pk=purchase.product.pk).update(
+                    quantity=models.F("quantity") - purchase.quantity
+                )
+            if (
+                purchase.purchase_type == Purchase.PurchaseTypeChoices.BARTER
+                and purchase.barter_product
+            ):
+                Product.objects.filter(pk=purchase.barter_product.pk).update(
+                    quantity=models.F("quantity") + purchase.barter_quantity
+                )
+            purchase.delete()
         return redirect("supplier_detail", pk=supplier_pk)
 
 

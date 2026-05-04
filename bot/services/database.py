@@ -25,6 +25,12 @@ setup_django()
 from finance.models import Customer, Order, PaymentHistory, Supplier, Purchase, SupplierPayment
 
 
+def _last9_digits(phone: Optional[str]) -> str:
+    """Return the last 9 digits of a phone number, ignoring any formatting."""
+    digits = ''.join(ch for ch in (phone or '') if ch.isdigit())
+    return digits[-9:]
+
+
 class CustomerService:
     """Service for accessing customer data"""
     
@@ -56,26 +62,32 @@ class CustomerService:
     @sync_to_async
     def get_customer_by_phone(phone: str) -> Optional[Dict]:
         """
-        Get customer by phone number
-        
-        Args:
-            phone: Customer phone number
-            
-        Returns:
-            Customer data or None
+        Get customer by phone number, matching on the last 9 digits so that
+        stored values with or without the +998 country code both work.
         """
-        try:
-            customer = Customer.objects.get(phone=phone)
-            return {
-                'id': customer.id,
-                'name': customer.name,
-                'phone': customer.phone,
-                'address': customer.address,
-                'default_debt': customer.default_debt,
-                'total_debt': customer.total_debt,
-            }
-        except Customer.DoesNotExist:
+        target = _last9_digits(phone)
+        if len(target) < 9:
             return None
+
+        customer = next(
+            (
+                c for c in Customer.objects
+                .exclude(phone__isnull=True)
+                .exclude(phone__exact='')
+                if _last9_digits(c.phone) == target
+            ),
+            None,
+        )
+        if not customer:
+            return None
+        return {
+            'id': customer.id,
+            'name': customer.name,
+            'phone': customer.phone,
+            'address': customer.address,
+            'default_debt': customer.default_debt,
+            'total_debt': customer.total_debt,
+        }
     
     @staticmethod
     @sync_to_async
@@ -220,27 +232,20 @@ class SupplierService:
     @staticmethod
     @sync_to_async
     def get_supplier_by_phone(phone: str) -> Optional[Dict]:
-        """Find a supplier by phone number, tolerant of formatting."""
-        normalized = SupplierService._normalize_phone(phone)
-        candidates = [phone, normalized]
-        if normalized.startswith('998') and len(normalized) == 12:
-            candidates.append(normalized[3:])
-        elif len(normalized) == 9:
-            candidates.append('998' + normalized)
+        """Find a supplier by phone number, matching on the last 9 digits."""
+        target = _last9_digits(phone)
+        if len(target) < 9:
+            return None
 
-        supplier = None
-        for candidate in candidates:
-            if not candidate:
-                continue
-            supplier = Supplier.objects.filter(phone=candidate).first()
-            if supplier:
-                break
-        if not supplier:
-            # Last resort: substring match (handles stored values with spaces / dashes)
-            for s in Supplier.objects.exclude(phone__isnull=True).exclude(phone__exact=''):
-                if SupplierService._normalize_phone(s.phone) == normalized:
-                    supplier = s
-                    break
+        supplier = next(
+            (
+                s for s in Supplier.objects
+                .exclude(phone__isnull=True)
+                .exclude(phone__exact='')
+                if _last9_digits(s.phone) == target
+            ),
+            None,
+        )
         if not supplier:
             return None
         return {
