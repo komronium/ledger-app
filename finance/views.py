@@ -92,20 +92,48 @@ class OrderView(LoginRequiredMixin, View):
 
     def _prepare_combined_data(self, orders, payments, customer):
         combined_data = []
+        # Group orders by (customer_id, batch_id, order_date). Orders without
+        # batch_id stay as their own single-item group.
+        groups = {}
+        ordered_keys = []
         for order in orders:
-            combined_data.append(
-                {
+            cust_id = order.customer_id
+            if order.batch_id:
+                key = ("g", cust_id, order.batch_id)
+            else:
+                key = ("o", order.id)
+            if key not in groups:
+                groups[key] = {
                     "type": "order",
-                    "id": order.id,
+                    "id": order.batch_id or f"single-{order.id}",
+                    "primary_id": order.id,
+                    "batch_id": order.batch_id,
                     "customer": order.customer if order.customer else "",
-                    "product": order.product if order.product else "",
-                    "quantity": order.quantity,
-                    "price_per_kg": order.price_per_kg,
                     "order_date": order.order_date,
-                    "total_price": order.total_price,
-                    "remaining_debt": order.remaining_debt,
+                    "items": [],
+                    "quantity": 0,
+                    "total_price": 0,
+                    "remaining_debt": 0,
                 }
-            )
+                ordered_keys.append(key)
+            g = groups[key]
+            g["items"].append({
+                "id": order.id,
+                "product": order.product,
+                "product_name": order.product.name if order.product else "—",
+                "quantity": order.quantity,
+                "price_per_kg": order.price_per_kg,
+                "total_price": order.total_price,
+            })
+            g["quantity"] += order.quantity
+            g["total_price"] += order.total_price
+            g["remaining_debt"] += order.remaining_debt
+            # Use earliest order_date in group (they should all match anyway)
+            if order.order_date < g["order_date"]:
+                g["order_date"] = order.order_date
+
+        for key in ordered_keys:
+            combined_data.append(groups[key])
 
         for payment in payments:
             combined_data.append(
@@ -136,10 +164,16 @@ class OrderView(LoginRequiredMixin, View):
             )
 
         # Stable order: by date, then orders before payments (same day),
-        # then by row id (insertion order). Keeps the cumulative-debt walk
+        # then by primary id (insertion order). Keeps the cumulative-debt walk
         # deterministic across requests.
         type_priority = {"order": 0, "payment": 1}
-        combined_data.sort(key=lambda x: (x["order_date"], type_priority.get(x["type"], 9), x["id"]))
+        combined_data.sort(
+            key=lambda x: (
+                x["order_date"],
+                type_priority.get(x["type"], 9),
+                x.get("primary_id") or x.get("id"),
+            )
+        )
         return combined_data
 
     def _calculate_cumulative_debt(self, combined_data, customer):
@@ -218,20 +252,42 @@ class OrderView(LoginRequiredMixin, View):
                 "total_debt": order_aggs["total_debt"] or 0,
             }
 
-            order_data = [
-                {
-                    "type": "order",
+            # Group orders into batches (same as customer view).
+            groups = {}
+            ordered_keys = []
+            for order in filtered_orders:
+                if order.batch_id:
+                    key = ("g", order.customer_id, order.batch_id)
+                else:
+                    key = ("o", order.id)
+                if key not in groups:
+                    groups[key] = {
+                        "type": "order",
+                        "id": order.batch_id or f"single-{order.id}",
+                        "primary_id": order.id,
+                        "batch_id": order.batch_id,
+                        "customer": order.customer,
+                        "order_date": order.order_date,
+                        "items": [],
+                        "quantity": 0,
+                        "total_price": 0,
+                        "remaining_debt": 0,
+                    }
+                    ordered_keys.append(key)
+                g = groups[key]
+                g["items"].append({
                     "id": order.id,
-                    "customer": order.customer,
                     "product": order.product,
+                    "product_name": order.product.name if order.product else "—",
                     "quantity": order.quantity,
                     "price_per_kg": order.price_per_kg,
-                    "order_date": order.order_date,
                     "total_price": order.total_price,
-                    "remaining_debt": order.remaining_debt,
-                }
-                for order in filtered_orders
-            ]
+                })
+                g["quantity"] += order.quantity
+                g["total_price"] += order.total_price
+                g["remaining_debt"] += order.remaining_debt
+
+            order_data = [groups[k] for k in ordered_keys]
 
             total_quantity = totals["total_quantity"]
             total_price = totals["total_price"]
@@ -247,10 +303,38 @@ class OrderView(LoginRequiredMixin, View):
 
         products_json = _json.dumps(products_list)
 
+        # Slim, JSON-serializable view of order rows for the receipt modal.
+        orders_for_js = []
+        for row in order_data:
+            if row.get("type") != "order":
+                orders_for_js.append({"type": "payment"})
+                continue
+            orders_for_js.append({
+                "type": "order",
+                "batch_id": row.get("batch_id"),
+                "primary_id": row.get("primary_id"),
+                "customer_name": row["customer"].name if row.get("customer") else "",
+                "order_date": row["order_date"].strftime("%d.%m.%Y") if row.get("order_date") else "",
+                "items": [
+                    {
+                        "id": it["id"],
+                        "name": it["product_name"],
+                        "quantity": it["quantity"],
+                        "price_per_kg": it["price_per_kg"],
+                        "total_price": it["total_price"],
+                    }
+                    for it in row.get("items", [])
+                ],
+                "total_price": row.get("total_price", 0),
+                "remaining_debt": row.get("remaining_debt", 0),
+            })
+        orders_view_json = _json.dumps(orders_for_js)
+
         errors = request.session.pop("order_errors", None)
 
         context = {
             "orders": order_data,
+            "orders_view_json": orders_view_json,
             "customers": Customer.objects.all(),
             "products": Product.objects.all(),
             "products_json": products_json,
@@ -267,6 +351,8 @@ class OrderView(LoginRequiredMixin, View):
         return render(request, self.template_name, context=context)
 
     def post(self, request):
+        import uuid
+
         from django.db import transaction
 
         orders_json = request.POST.get("orders_json", "[]")
@@ -274,6 +360,8 @@ class OrderView(LoginRequiredMixin, View):
             orders_data = json.loads(orders_json)
         except json.JSONDecodeError:
             orders_data = []
+
+        batch_id = uuid.uuid4().hex if len(orders_data) > 0 else None
 
         errors = []
         for item in orders_data:
@@ -317,6 +405,7 @@ class OrderView(LoginRequiredMixin, View):
                         product=product,
                         quantity=requested_quantity,
                         price_per_kg=price_per_kg,
+                        batch_id=batch_id,
                     )
                     order.save()
                     Customer.objects.filter(pk=customer.pk).update(
@@ -645,66 +734,202 @@ class StatisticsView(AdminOnlyMixin, View):
         years.add(date.today().year)
         return sorted(years)
 
-    def get(self, request):
-        selected_year = request.GET.get("year", str(date.today().year))
+    def _avg_cost_map(self):
+        """Average buy-cost per product unit, across all purchases.
 
+        Used as a per-unit COGS estimate so we can compute profit for any
+        period (today, week, month, year) without trying to match each sale
+        to a specific purchase batch.
+        """
+        cost_map = {}
+        agg = (
+            Purchase.objects.filter(product__isnull=False)
+            .values("product_id")
+            .annotate(
+                total_cost=models.Sum("total_cost"),
+                total_qty=models.Sum("quantity"),
+            )
+        )
+        for row in agg:
+            qty = row["total_qty"] or 0
+            cost = row["total_cost"] or 0
+            if qty > 0 and cost > 0:
+                cost_map[row["product_id"]] = cost / qty
+        return cost_map
+
+    def _period_stats(self, date_from, date_to, cost_map):
+        """Aggregate revenue / COGS / expenses / profit / orders for a window.
+
+        date_from and date_to are inclusive.
+        """
+        orders = Order.objects.filter(
+            order_date__gte=date_from, order_date__lte=date_to
+        ).select_related("product")
+        revenue = 0
+        cogs = 0
+        qty = 0
+        count = 0
+        for o in orders:
+            revenue += o.total_price
+            qty += o.quantity
+            count += 1
+            unit_cost = cost_map.get(o.product_id, 0)
+            cogs += int(unit_cost * o.quantity)
+
+        expenses = (
+            Expense.objects.filter(
+                date__gte=date_from, date__lte=date_to
+            ).aggregate(s=models.Sum("amount"))["s"]
+            or 0
+        )
+
+        return {
+            "revenue": revenue,
+            "cogs": cogs,
+            "expenses": expenses,
+            "profit": revenue - cogs - expenses,
+            "orders_count": count,
+            "quantity": qty,
+        }
+
+    def get(self, request):
+        import datetime as _dt
+
+        today = date.today()
+
+        selected_year = request.GET.get("year", str(today.year))
         try:
             selected_year = int(selected_year)
         except (ValueError, TypeError):
-            selected_year = date.today().year
+            selected_year = today.year
 
-        orders = Order.objects.filter(order_date__year=selected_year)
-        customers = Customer.objects.all()
+        cost_map = self._avg_cost_map()
 
-        total_revenue = sum(order.total_price for order in orders)
-        total_debt = sum(customer.total_debt for customer in customers)
-        total_quantity = sum(order.quantity for order in orders)
-        total_orders = orders.count()
+        # Today, week (Mon..Sun), month, year — all anchored to "today".
+        week_start = today - _dt.timedelta(days=today.weekday())
+        week_end = week_start + _dt.timedelta(days=6)
+        month_start = today.replace(day=1)
+        if month_start.month == 12:
+            next_month = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            next_month = month_start.replace(month=month_start.month + 1)
+        month_end = next_month - _dt.timedelta(days=1)
+        year_start = today.replace(month=1, day=1)
+        year_end = today.replace(month=12, day=31)
+
+        today_stats = self._period_stats(today, today, cost_map)
+        week_stats = self._period_stats(week_start, week_end, cost_map)
+        month_stats = self._period_stats(month_start, month_end, cost_map)
+        year_stats = self._period_stats(year_start, year_end, cost_map)
+
+        # Yesterday (for delta vs today)
+        yesterday = today - _dt.timedelta(days=1)
+        yesterday_stats = self._period_stats(yesterday, yesterday, cost_map)
+
+        def _pct_delta(curr, prev):
+            if not prev:
+                return None
+            return round((curr - prev) / abs(prev) * 100)
+
+        today_revenue_delta = _pct_delta(
+            today_stats["revenue"], yesterday_stats["revenue"]
+        )
+        today_profit_delta = _pct_delta(
+            today_stats["profit"], yesterday_stats["profit"]
+        )
+
+        # Last 7 days mini-chart (oldest -> today)
+        last_7_days = []
+        max_day_profit = 1
+        for i in range(6, -1, -1):
+            d = today - _dt.timedelta(days=i)
+            ds = self._period_stats(d, d, cost_map)
+            last_7_days.append(
+                {
+                    "label": d.strftime("%d.%m"),
+                    "weekday": ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"][d.weekday()],
+                    "revenue": ds["revenue"],
+                    "profit": ds["profit"],
+                    "is_today": d == today,
+                }
+            )
+            if ds["profit"] > max_day_profit:
+                max_day_profit = ds["profit"]
+        for d in last_7_days:
+            d["bar_pct"] = (
+                round((d["profit"] / max_day_profit) * 100)
+                if max_day_profit and d["profit"] > 0
+                else 0
+            )
+
+        # Selected-year monthly breakdown
+        orders_year = Order.objects.filter(
+            order_date__year=selected_year
+        ).select_related("product")
 
         monthly_data = []
-        max_monthly_revenue = 1
+        max_monthly_profit = 1
         for month_num in range(1, 13):
-            month_orders = orders.filter(order_date__month=month_num)
-            revenue = sum(o.total_price for o in month_orders)
-            qty = sum(o.quantity for o in month_orders)
-            count = month_orders.count()
-            if revenue > max_monthly_revenue:
-                max_monthly_revenue = revenue
+            m_first = _dt.date(selected_year, month_num, 1)
+            if month_num == 12:
+                m_next = _dt.date(selected_year + 1, 1, 1)
+            else:
+                m_next = _dt.date(selected_year, month_num + 1, 1)
+            m_last = m_next - _dt.timedelta(days=1)
+            ms = self._period_stats(m_first, m_last, cost_map)
             monthly_data.append(
                 {
                     "month": self.MONTH_NAMES[month_num - 1],
                     "month_num": month_num,
-                    "revenue": revenue,
-                    "quantity": qty,
-                    "count": count,
+                    "revenue": ms["revenue"],
+                    "profit": ms["profit"],
+                    "expenses": ms["expenses"],
+                    "count": ms["orders_count"],
                 }
             )
-
+            if ms["profit"] > max_monthly_profit:
+                max_monthly_profit = ms["profit"]
         for m in monthly_data:
             m["bar_pct"] = (
-                round((m["revenue"] / max_monthly_revenue) * 100)
-                if max_monthly_revenue
+                round((m["profit"] / max_monthly_profit) * 100)
+                if max_monthly_profit and m["profit"] > 0
                 else 0
             )
 
-        top_products = Product.objects.annotate(
-            sold_quantity=models.Sum(
-                "orders__quantity",
-                filter=models.Q(orders__order_date__year=selected_year),
-            ),
-            sold_revenue=models.Sum(
-                "orders__total_price",
-                filter=models.Q(orders__order_date__year=selected_year),
-            ),
-        ).order_by("-sold_quantity")
+        # Top products this month (more useful than yearly for daily decisions)
+        top_products = (
+            Product.objects.annotate(
+                sold_quantity=models.Sum(
+                    "orders__quantity",
+                    filter=models.Q(
+                        orders__order_date__gte=month_start,
+                        orders__order_date__lte=month_end,
+                    ),
+                ),
+                sold_revenue=models.Sum(
+                    "orders__total_price",
+                    filter=models.Q(
+                        orders__order_date__gte=month_start,
+                        orders__order_date__lte=month_end,
+                    ),
+                ),
+            )
+            .filter(sold_quantity__gt=0)
+            .order_by("-sold_revenue")[:5]
+        )
 
-        top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[
-            :5
-        ]
+        top_debtors = Customer.objects.filter(total_debt__gt=0).order_by(
+            "-total_debt"
+        )[:5]
 
+        # Customer debt (snapshot, time-independent)
+        total_customer_debt = (
+            Customer.objects.aggregate(s=models.Sum("total_debt"))["s"] or 0
+        )
+
+        # Supplier breakdown for selected year
         supplier_stats = []
         total_supplier_debt = 0
-        total_purchased_all = 0
 
         for supplier in Supplier.objects.all():
             purchases = Purchase.objects.filter(
@@ -720,13 +945,17 @@ class StatisticsView(AdminOnlyMixin, View):
             all_payments = sum(p.amount for p in supplier.payments.all())
             debt = supplier.initial_debt + all_purchases - all_payments
 
-            supplier_orders = orders.filter(product__supplier=supplier)
-            sales_revenue = sum(o.total_price for o in supplier_orders)
-            sales_quantity = sum(o.quantity for o in supplier_orders)
-            profit = sales_revenue - purchased
+            supplier_orders = orders_year.filter(product__supplier=supplier)
+            sales_revenue = 0
+            sales_cogs = 0
+            sales_quantity = 0
+            for o in supplier_orders:
+                sales_revenue += o.total_price
+                sales_quantity += o.quantity
+                sales_cogs += int(cost_map.get(o.product_id, 0) * o.quantity)
+            profit = sales_revenue - sales_cogs
 
             total_supplier_debt += max(debt, 0)
-            total_purchased_all += purchased
 
             monthly = []
             for month_num in range(1, 13):
@@ -734,6 +963,10 @@ class StatisticsView(AdminOnlyMixin, View):
                 mo_purchases = purchases.filter(purchase_date__month=month_num)
                 mo_payments = payments.filter(paid_at__month=month_num)
                 m_sales = sum(o.total_price for o in mo_orders)
+                m_cogs = sum(
+                    int(cost_map.get(o.product_id, 0) * o.quantity)
+                    for o in mo_orders
+                )
                 m_purchased = sum(p.total_cost for p in mo_purchases)
                 m_paid = sum(p.amount for p in mo_payments)
                 monthly.append(
@@ -742,7 +975,7 @@ class StatisticsView(AdminOnlyMixin, View):
                         "sales": m_sales,
                         "purchased": m_purchased,
                         "paid": m_paid,
-                        "profit": m_sales - m_purchased,
+                        "profit": m_sales - m_cogs,
                     }
                 )
 
@@ -759,25 +992,27 @@ class StatisticsView(AdminOnlyMixin, View):
                 }
             )
 
-        total_expenses = sum(
-            e.amount for e in Expense.objects.filter(date__year=selected_year)
-        )
+        # Sort suppliers by profit (most valuable first)
+        supplier_stats.sort(key=lambda s: s["profit"], reverse=True)
 
         context = {
-            "total_orders": total_orders,
-            "total_revenue": total_revenue,
-            "total_debt": total_debt,
-            "total_quantity": total_quantity,
-            "total_purchased": total_purchased_all,
+            "today_label": today.strftime("%d.%m.%Y"),
+            "today_stats": today_stats,
+            "week_stats": week_stats,
+            "month_stats": month_stats,
+            "year_stats": year_stats,
+            "today_revenue_delta": today_revenue_delta,
+            "today_profit_delta": today_profit_delta,
+            "last_7_days": last_7_days,
+            "monthly_data": monthly_data,
+            "top_products": top_products,
+            "top_debtors": top_debtors,
+            "total_customer_debt": total_customer_debt,
             "total_supplier_debt": total_supplier_debt,
             "supplier_stats": supplier_stats,
-            "total_expenses": total_expenses,
-            "net_profit": total_revenue - total_purchased_all - total_expenses,
             "selected_year": selected_year,
             "available_years": self._available_years(),
-            "monthly_data": monthly_data,
-            "top_products": [p for p in top_products if p.sold_quantity][:5],
-            "top_debtors": top_debtors,
+            "current_month_label": self.MONTH_NAMES[today.month - 1],
             "page": "stats",
         }
 

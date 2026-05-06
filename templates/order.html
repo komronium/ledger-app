@@ -1,6 +1,35 @@
 {% extends "base.html" %}
 {% load custom_filters %}
 {% block content %}
+<style>
+    /* Multi-item batch grouping: hovering any row in the batch highlights all rows
+       (including the rowspan-ed Sana/Mijoz/Jami/Qarz cells) so the user sees the
+       group as a single unit. */
+    #ordersTable > tbody.batch-group:hover > tr > td {
+        background-color: rgb(239 246 255 / 0.7); /* blue-50 */
+    }
+    /* Softer dashed divider between items inside the same batch — visually
+       distinct from the solid divider between separate orders below. */
+    #ordersTable > tbody.batch-group > tr + tr > td {
+        border-top: 1px dashed rgb(226 232 240); /* slate-200 */
+    }
+    /* Solid divider between consecutive orders (replaces divide-y, which doesn't
+       cross tbody boundaries). */
+    #ordersTable > tbody + tbody > tr:first-child > td {
+        border-top: 1px solid rgb(243 244 246); /* gray-100 */
+    }
+    /* Inside a batch the inner-row top borders take precedence over the
+       inter-tbody one — keep them dashed. */
+    #ordersTable > tbody.batch-group > tr + tr > td {
+        border-top-style: dashed;
+        border-top-color: rgb(226 232 240);
+    }
+    /* Left accent strip on the leftmost cell of a batch group, signaling
+       "these rows belong together". */
+    #ordersTable > tbody.batch-group > tr:first-child > td:first-child {
+        box-shadow: inset 3px 0 0 0 #3b82f6; /* blue-500 */
+    }
+</style>
 <div id="ordersContent">
     <!-- Error Messages -->
     {% if errors %}
@@ -217,6 +246,65 @@
         </div>
     </div>
 
+    <!-- View Order Receipt Modal -->
+    <div id="viewOrderModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[95vh]">
+            <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+                <span class="text-sm font-semibold text-gray-600">Buyurtma cheki</span>
+                <div class="flex gap-2">
+                    <button onclick="printViewedReceipt()"
+                        class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Print
+                    </button>
+                    <button onclick="closeViewOrderModal()"
+                        class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto bg-gray-50 p-5">
+                <div id="viewedReceiptPaper"
+                    style="font-family:'Roboto Mono','Courier New',monospace; background:#fff; width:72mm; min-width:260px; margin:0 auto; padding:6mm 4mm; color:#000; font-size:12px; line-height:1.5;">
+                    <div style="border-top:2px dashed #000; margin-bottom:5mm;"></div>
+                    <div style="text-align:center; margin-bottom:5mm;">
+                        <div style="font-size:16px; font-weight:800; letter-spacing:3px; color:#000;">SAVDO CHEKI</div>
+                        <div style="font-size:9px; font-weight:700; color:#000; margin-top:2mm; letter-spacing:1px;">SAVDO TIZIMI</div>
+                    </div>
+                    <div style="border-top:2px dashed #000; margin-bottom:4mm;"></div>
+                    <div style="font-size:10px; font-weight:700; color:#000; margin-bottom:1mm;" id="viewedReceiptDate"></div>
+                    <div style="font-size:10px; font-weight:700; color:#000; margin-bottom:4mm;" id="viewedReceiptCustomer"></div>
+                    <div style="border-top:2px dashed #000; margin-bottom:4mm;"></div>
+                    <div id="viewedReceiptItems"></div>
+                    <div style="border-top:2px dashed #000; margin-bottom:4mm;"></div>
+                    <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:800; color:#000; margin-bottom:2mm;">
+                        <span>JAMI:</span>
+                        <span id="viewedReceiptTotal"></span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700; color:#000;">
+                        <span>Mahsulotlar soni:</span>
+                        <span id="viewedReceiptCount"></span>
+                    </div>
+                    <div style="border-top:2px dashed #000; margin-top:4mm; margin-bottom:5mm;"></div>
+                    <div style="text-align:center; font-size:11px; font-weight:800; color:#000; margin-bottom:4mm; letter-spacing:3px;">* RAHMAT! *</div>
+                    <div style="border-top:2px dashed #000;"></div>
+                </div>
+            </div>
+
+            <div class="px-5 pb-4 pt-3 border-t border-gray-100 flex gap-2 flex-wrap">
+                <div id="viewedOrderActions" class="flex gap-2 flex-1 flex-wrap"></div>
+                <button onclick="closeViewOrderModal()"
+                    class="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all">Yopish</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Orders List -->
     <div id="invoice" class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
         <div id="orderList" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 py-5 border-b border-gray-100">
@@ -268,7 +356,7 @@
                 class="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full table-auto">
+            <table id="ordersTable" class="w-full table-auto">
                 <thead class="bg-gray-50/80 border-b border-gray-100">
                     <tr>
                         <th class="px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Sana</th>
@@ -280,65 +368,142 @@
                         <th class="px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Qarz</th>
                     </tr>
                 </thead>
-                <tbody id="ordersTable" class="divide-y divide-gray-100 font-medium">
-                    {% for order in orders %}
-                    <tr {% if order.type == 'order' %}onclick="window.location.href = '{% url 'order_edit' order.id %}'"
-                        {% endif %}
-                        class="hover:bg-gray-100 cursor-pointer {% if order.type == 'payment' %}bg-green-50 hover:bg-green-100{% endif %}">
-                        <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                            {{ order.order_date|date:"d.m.Y" }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">
-                            {{ order.customer.name }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-900">
-                            {% if order.type == 'order' and order.product %}
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="text-gray-800">{{ order.product.name }}</span>
-                                {% if order.product.promo_buy and order.product.promo_free %}
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold leading-none">{{ order.product.promo_buy }}+{{ order.product.promo_free }}</span>
+                {% for order in orders %}
+                    {% if order.type == 'order' %}
+                        {% if order.items|length > 1 %}
+                        <tbody class="batch-group">
+                            {% for item in order.items %}
+                            <tr onclick='openOrderReceipt({{ forloop.parentloop.counter0 }})'
+                                class="cursor-pointer transition-colors">
+                                {% if forloop.first %}
+                                <td rowspan="{{ order.items|length }}" class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap align-top">
+                                    {{ order.order_date|date:"d.m.Y" }}
+                                </td>
+                                <td rowspan="{{ order.items|length }}" class="px-4 py-3 text-sm text-gray-900 font-medium align-top">
+                                    <div class="flex flex-col gap-1.5">
+                                        <span>{{ order.customer.name }}</span>
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold leading-none w-fit border border-blue-100">
+                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                            </svg>
+                                            {{ order.items|length }} ta mahsulot
+                                        </span>
+                                    </div>
+                                </td>
                                 {% endif %}
-                            </div>
-                            {% elif order.type == 'payment' %}
-                            <span class="text-green-600 font-semibold">To'lov</span>
-                            {% endif %}
-                        </td>
-                        {% if order.type == 'order' %}
-                        <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                            {{ order.quantity|format_currency }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                            {{ order.price_per_kg|format_currency }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                            {{ order.total_price|format_currency }}
-                        </td>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-gray-800">{{ item.product_name }}</span>
+                                        {% with p=item.product %}
+                                        {% if p.promo_buy and p.promo_free %}
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold leading-none">{{ p.promo_buy }}+{{ p.promo_free }}</span>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    {{ item.quantity|format_currency }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                                    {{ item.price_per_kg|format_currency }}
+                                </td>
+                                {% if forloop.first %}
+                                <td rowspan="{{ order.items|length }}" class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap font-semibold align-top">
+                                    {{ order.total_price|format_currency }}
+                                </td>
+                                {% if order.remaining_debt > 0 %}
+                                <td rowspan="{{ order.items|length }}" class="px-4 py-3 text-sm whitespace-nowrap text-red-700 align-top">
+                                    {{ order.remaining_debt|format_currency }}
+                                </td>
+                                {% else %}
+                                <td rowspan="{{ order.items|length }}" class="px-4 py-3 text-sm whitespace-nowrap text-green-700 align-top">
+                                    {{ order.remaining_debt|format_currency }}
+                                </td>
+                                {% endif %}
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
                         {% else %}
-                        <td colspan="2" class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                            {{order.comment}}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-green-600 font-semibold whitespace-nowrap">
-                            {{ order.paid_amount|format_currency }}
-                        </td>
+                        <tbody>
+                            <tr onclick='openOrderReceipt({{ forloop.counter0 }})'
+                                class="hover:bg-blue-50/60 cursor-pointer transition-colors">
+                                <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                                    {{ order.order_date|date:"d.m.Y" }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 font-medium">
+                                    {{ order.customer.name }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-gray-800">{{ order.items.0.product_name }}</span>
+                                        {% with p=order.items.0.product %}
+                                        {% if p.promo_buy and p.promo_free %}
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold leading-none">{{ p.promo_buy }}+{{ p.promo_free }}</span>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    {{ order.quantity|format_currency }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                                    {{ order.items.0.price_per_kg|format_currency }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap font-semibold">
+                                    {{ order.total_price|format_currency }}
+                                </td>
+                                {% if order.remaining_debt > 0 %}
+                                <td class="px-4 py-3 text-sm whitespace-nowrap text-red-700">
+                                    {{ order.remaining_debt|format_currency }}
+                                </td>
+                                {% else %}
+                                <td class="px-4 py-3 text-sm whitespace-nowrap text-green-700">
+                                    {{ order.remaining_debt|format_currency }}
+                                </td>
+                                {% endif %}
+                            </tr>
+                        </tbody>
                         {% endif %}
-                        {% if order.remaining_debt > 0 %}
-                        <td class="px-4 py-3 text-sm whitespace-nowrap text-red-700">
-                            {{ order.remaining_debt | format_currency }}
-                        </td>
-                        {% elif order.remaining_debt <= 0 %} <td
-                            class="px-4 py-3 text-sm whitespace-nowrap text-green-700">
-                            {{ order.remaining_debt | format_currency }}
+                    {% else %}
+                    <tbody>
+                        <tr class="bg-green-50 hover:bg-green-100">
+                            <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                                {{ order.order_date|date:"d.m.Y" }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900 font-medium">
+                                {{ order.customer.name }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900">
+                                <span class="text-green-600 font-semibold">To'lov</span>
+                            </td>
+                            <td colspan="2" class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                {{ order.comment }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-green-600 font-semibold whitespace-nowrap">
+                                {{ order.paid_amount|format_currency }}
+                            </td>
+                            {% if order.remaining_debt > 0 %}
+                            <td class="px-4 py-3 text-sm whitespace-nowrap text-red-700">
+                                {{ order.remaining_debt|format_currency }}
+                            </td>
+                            {% else %}
+                            <td class="px-4 py-3 text-sm whitespace-nowrap text-green-700">
+                                {{ order.remaining_debt|format_currency }}
                             </td>
                             {% endif %}
-                    </tr>
+                        </tr>
+                    </tbody>
+                    {% endif %}
                     {% empty %}
-                    <tr>
-                        <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400">
-                            Hozircha buyurtmalar yo'q
-                        </td>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400">
+                                Hozircha buyurtmalar yo'q
+                            </td>
+                        </tr>
+                    </tbody>
                     {% endfor %}
-                </tbody>
                 <tfoot class="bg-slate-50 border-t border-gray-200">
                     <tr>
                         <td colspan="3" class="px-6 py-4 text-sm font-bold text-gray-800">JAMI:</td>
@@ -362,6 +527,83 @@
 </div>
 
 <script>
+    let ordersViewData = JSON.parse('{{ orders_view_json|escapejs }}' || '[]');
+    let currentlyViewedOrder = null;
+
+    function openOrderReceipt(index) {
+        const data = ordersViewData[index];
+        if (!data || data.type !== 'order') return;
+        currentlyViewedOrder = data;
+
+        document.getElementById('viewedReceiptDate').textContent = 'Sana: ' + data.order_date;
+        document.getElementById('viewedReceiptCustomer').textContent = 'Mijoz: ' + data.customer_name;
+        document.getElementById('viewedReceiptCount').textContent = data.items.length + ' ta';
+        document.getElementById('viewedReceiptTotal').textContent = fmt(data.total_price) + " so'm";
+
+        const list = document.getElementById('viewedReceiptItems');
+        list.innerHTML = '';
+        data.items.forEach((it) => {
+            const item = document.createElement('div');
+            item.style.cssText = "margin-bottom:3mm; font-family:'Roboto Mono','Courier New',monospace; font-size:11px; color:#000;";
+            item.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:700; font-size:12px; word-break:break-word; color:#000;">${it.name}</div>
+                        <div style="font-weight:600; margin-top:0.5mm; font-size:11px; color:#000;">${fmt(it.quantity)} x ${fmt(it.price_per_kg)} so'm</div>
+                    </div>
+                    <div style="font-weight:700; white-space:nowrap; font-size:12px; padding-left:4px; color:#000;">${fmt(it.total_price)}</div>
+                </div>
+                <div style="border-bottom:1px dotted #555; margin-top:2mm;"></div>
+            `;
+            list.appendChild(item);
+        });
+
+        // Build action buttons (edit single, or view-only for batches with multiple items)
+        const actions = document.getElementById('viewedOrderActions');
+        actions.innerHTML = '';
+        if (data.items.length === 1) {
+            const editBtn = document.createElement('a');
+            editBtn.href = '/order/edit/' + data.items[0].id + '/';
+            editBtn.className = 'flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all';
+            editBtn.textContent = "Tahrirlash";
+            actions.appendChild(editBtn);
+        }
+
+        document.getElementById('viewOrderModal').classList.remove('hidden');
+    }
+
+    function closeViewOrderModal() {
+        document.getElementById('viewOrderModal').classList.add('hidden');
+        currentlyViewedOrder = null;
+    }
+
+    function printViewedReceipt() {
+        const content = document.getElementById('viewedReceiptPaper').innerHTML;
+        const win = window.open('', '_blank', 'width=340,height=600,toolbar=0,menubar=0,scrollbars=0');
+        win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  @page { size: 80mm auto; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 80mm; background: #fff; }
+  body {
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #000;
+    padding: 4mm 5mm;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  * { color: #000 !important; }
+</style>
+</head><body>${content}</body></html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); win.close(); }, 300);
+    }
+
     let pendingOrders = [];
 
     function syncTooltipVisibility() {
