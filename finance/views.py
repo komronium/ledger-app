@@ -736,62 +736,60 @@ class StatisticsView(AdminOnlyMixin, View):
         years.add(date.today().year)
         return sorted(years)
 
-    def _avg_cost_map(self):
-        """Average buy-cost per product unit, across all purchases.
+    def _period_stats(self, date_from, date_to):
+        """Cash-flow stats for a window (inclusive).
 
-        Used as a per-unit COGS estimate so we can compute profit for any
-        period (today, week, month, year) without trying to match each sale
-        to a specific purchase batch.
+        In this business orders are always sold on credit — no cash flows when
+        a sale happens, and goods received from suppliers are also taken on
+        credit. Real cash only moves when:
+          + customers pay back debt (PaymentHistory) — money in
+          - we pay suppliers (SupplierPayment)         — money out
+          - we record an expense (Expense)             — money out
+
+        Barter is included on both sides (Variant B): exchanging goods reduces
+        the underlying debt at the goods' price, so it counts as a "payment"
+        even though no cash actually changes hands.
         """
-        cost_map = {}
-        agg = (
-            Purchase.objects.filter(product__isnull=False)
-            .values("product_id")
-            .annotate(
-                total_cost=models.Sum("total_cost"),
-                total_qty=models.Sum("quantity"),
-            )
+        customer_pay_qs = PaymentHistory.objects.filter(
+            paid_at__date__gte=date_from, paid_at__date__lte=date_to
         )
-        for row in agg:
-            qty = row["total_qty"] or 0
-            cost = row["total_cost"] or 0
-            if qty > 0 and cost > 0:
-                cost_map[row["product_id"]] = cost / qty
-        return cost_map
-
-    def _period_stats(self, date_from, date_to, cost_map):
-        """Aggregate revenue / COGS / expenses / profit / orders for a window.
-
-        date_from and date_to are inclusive.
-        """
-        orders = Order.objects.filter(
+        supplier_pay_qs = SupplierPayment.objects.filter(
+            paid_at__gte=date_from, paid_at__lte=date_to
+        )
+        expense_qs = Expense.objects.filter(
+            date__gte=date_from, date__lte=date_to
+        )
+        order_qs = Order.objects.filter(
             order_date__gte=date_from, order_date__lte=date_to
-        ).select_related("product")
-        revenue = 0
-        cogs = 0
-        qty = 0
-        count = 0
-        for o in orders:
-            revenue += o.total_price
-            qty += o.quantity
-            count += 1
-            unit_cost = cost_map.get(o.product_id, 0)
-            cogs += int(unit_cost * o.quantity)
+        )
 
-        expenses = (
-            Expense.objects.filter(
-                date__gte=date_from, date__lte=date_to
-            ).aggregate(s=models.Sum("amount"))["s"]
-            or 0
+        # PaymentHistory.amount is a DecimalField — coerce to int so downstream
+        # arithmetic and template formatters stay consistent with the rest of
+        # the system, which uses integer som.
+        customer_payments = int(
+            customer_pay_qs.aggregate(s=models.Sum("amount"))["s"] or 0
+        )
+        customer_payments_count = customer_pay_qs.count()
+        supplier_payments = int(
+            supplier_pay_qs.aggregate(s=models.Sum("amount"))["s"] or 0
+        )
+        expenses = int(expense_qs.aggregate(s=models.Sum("amount"))["s"] or 0)
+
+        order_aggs = order_qs.aggregate(
+            count=models.Count("id"),
+            qty=models.Sum("quantity"),
+            revenue=models.Sum("total_price"),
         )
 
         return {
-            "revenue": revenue,
-            "cogs": cogs,
+            "customer_payments": customer_payments,
+            "customer_payments_count": customer_payments_count,
+            "supplier_payments": supplier_payments,
             "expenses": expenses,
-            "profit": revenue - cogs - expenses,
-            "orders_count": count,
-            "quantity": qty,
+            "profit": customer_payments - supplier_payments - expenses,
+            "orders_count": order_aggs["count"] or 0,
+            "quantity": order_aggs["qty"] or 0,
+            "orders_revenue": order_aggs["revenue"] or 0,
         }
 
     def get(self, request):
@@ -805,8 +803,6 @@ class StatisticsView(AdminOnlyMixin, View):
         except (ValueError, TypeError):
             selected_year = today.year
 
-        cost_map = self._avg_cost_map()
-
         # Today, week (Mon..Sun), month, year — all anchored to "today".
         week_start = today - _dt.timedelta(days=today.weekday())
         week_end = week_start + _dt.timedelta(days=6)
@@ -819,48 +815,46 @@ class StatisticsView(AdminOnlyMixin, View):
         year_start = today.replace(month=1, day=1)
         year_end = today.replace(month=12, day=31)
 
-        today_stats = self._period_stats(today, today, cost_map)
-        week_stats = self._period_stats(week_start, week_end, cost_map)
-        month_stats = self._period_stats(month_start, month_end, cost_map)
-        year_stats = self._period_stats(year_start, year_end, cost_map)
+        today_stats = self._period_stats(today, today)
+        week_stats = self._period_stats(week_start, week_end)
+        month_stats = self._period_stats(month_start, month_end)
+        year_stats = self._period_stats(year_start, year_end)
 
         # Yesterday (for delta vs today)
         yesterday = today - _dt.timedelta(days=1)
-        yesterday_stats = self._period_stats(yesterday, yesterday, cost_map)
+        yesterday_stats = self._period_stats(yesterday, yesterday)
 
         def _pct_delta(curr, prev):
             if not prev:
                 return None
             return round((curr - prev) / abs(prev) * 100)
 
-        today_revenue_delta = _pct_delta(
-            today_stats["revenue"], yesterday_stats["revenue"]
-        )
         today_profit_delta = _pct_delta(
             today_stats["profit"], yesterday_stats["profit"]
         )
 
         # Last 7 days mini-chart (oldest -> today)
         last_7_days = []
-        max_day_profit = 1
+        max_abs_day_profit = 1
         for i in range(6, -1, -1):
             d = today - _dt.timedelta(days=i)
-            ds = self._period_stats(d, d, cost_map)
+            ds = self._period_stats(d, d)
             last_7_days.append(
                 {
                     "label": d.strftime("%d.%m"),
                     "weekday": ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"][d.weekday()],
-                    "revenue": ds["revenue"],
                     "profit": ds["profit"],
                     "is_today": d == today,
                 }
             )
-            if ds["profit"] > max_day_profit:
-                max_day_profit = ds["profit"]
+            if abs(ds["profit"]) > max_abs_day_profit:
+                max_abs_day_profit = abs(ds["profit"])
         for d in last_7_days:
+            # Scale by absolute value so negative-profit days get a visible bar
+            # too (it's drawn red).
             d["bar_pct"] = (
-                round((d["profit"] / max_day_profit) * 100)
-                if max_day_profit and d["profit"] > 0
+                round((abs(d["profit"]) / max_abs_day_profit) * 100)
+                if max_abs_day_profit and d["profit"] != 0
                 else 0
             )
 
@@ -870,7 +864,7 @@ class StatisticsView(AdminOnlyMixin, View):
         ).select_related("product")
 
         monthly_data = []
-        max_monthly_profit = 1
+        max_abs_monthly_profit = 1
         for month_num in range(1, 13):
             m_first = _dt.date(selected_year, month_num, 1)
             if month_num == 12:
@@ -878,23 +872,24 @@ class StatisticsView(AdminOnlyMixin, View):
             else:
                 m_next = _dt.date(selected_year, month_num + 1, 1)
             m_last = m_next - _dt.timedelta(days=1)
-            ms = self._period_stats(m_first, m_last, cost_map)
+            ms = self._period_stats(m_first, m_last)
             monthly_data.append(
                 {
                     "month": self.MONTH_NAMES[month_num - 1],
                     "month_num": month_num,
-                    "revenue": ms["revenue"],
-                    "profit": ms["profit"],
+                    "customer_payments": ms["customer_payments"],
+                    "supplier_payments": ms["supplier_payments"],
                     "expenses": ms["expenses"],
+                    "profit": ms["profit"],
                     "count": ms["orders_count"],
                 }
             )
-            if ms["profit"] > max_monthly_profit:
-                max_monthly_profit = ms["profit"]
+            if abs(ms["profit"]) > max_abs_monthly_profit:
+                max_abs_monthly_profit = abs(ms["profit"])
         for m in monthly_data:
             m["bar_pct"] = (
-                round((m["profit"] / max_monthly_profit) * 100)
-                if max_monthly_profit and m["profit"] > 0
+                round((abs(m["profit"]) / max_abs_monthly_profit) * 100)
+                if max_abs_monthly_profit and m["profit"] != 0
                 else 0
             )
 
@@ -929,7 +924,10 @@ class StatisticsView(AdminOnlyMixin, View):
             Customer.objects.aggregate(s=models.Sum("total_debt"))["s"] or 0
         )
 
-        # Supplier breakdown for selected year
+        # Supplier breakdown for selected year. We don't compute a per-supplier
+        # "profit" anymore: in the cash-flow model the relevant numbers are
+        # Xarid (goods received as debt), To'lov (cash paid out), Sotuv (sales
+        # of their products), and Qarz (current outstanding debt).
         supplier_stats = []
         total_supplier_debt = 0
 
@@ -942,20 +940,17 @@ class StatisticsView(AdminOnlyMixin, View):
             )
 
             purchased = sum(p.total_cost for p in purchases)
-            paid = sum(p.amount for p in payments)
+            paid = int(sum(p.amount for p in payments))
             all_purchases = sum(p.total_cost for p in supplier.purchases.all())
-            all_payments = sum(p.amount for p in supplier.payments.all())
+            all_payments = int(sum(p.amount for p in supplier.payments.all()))
             debt = supplier.initial_debt + all_purchases - all_payments
 
             supplier_orders = orders_year.filter(product__supplier=supplier)
             sales_revenue = 0
-            sales_cogs = 0
             sales_quantity = 0
             for o in supplier_orders:
                 sales_revenue += o.total_price
                 sales_quantity += o.quantity
-                sales_cogs += int(cost_map.get(o.product_id, 0) * o.quantity)
-            profit = sales_revenue - sales_cogs
 
             total_supplier_debt += max(debt, 0)
 
@@ -965,19 +960,14 @@ class StatisticsView(AdminOnlyMixin, View):
                 mo_purchases = purchases.filter(purchase_date__month=month_num)
                 mo_payments = payments.filter(paid_at__month=month_num)
                 m_sales = sum(o.total_price for o in mo_orders)
-                m_cogs = sum(
-                    int(cost_map.get(o.product_id, 0) * o.quantity)
-                    for o in mo_orders
-                )
                 m_purchased = sum(p.total_cost for p in mo_purchases)
-                m_paid = sum(p.amount for p in mo_payments)
+                m_paid = int(sum(p.amount for p in mo_payments))
                 monthly.append(
                     {
                         "month": self.MONTH_NAMES[month_num - 1],
                         "sales": m_sales,
                         "purchased": m_purchased,
                         "paid": m_paid,
-                        "profit": m_sales - m_cogs,
                     }
                 )
 
@@ -989,13 +979,13 @@ class StatisticsView(AdminOnlyMixin, View):
                     "debt": debt,
                     "sales": sales_revenue,
                     "quantity": sales_quantity,
-                    "profit": profit,
                     "monthly": monthly,
                 }
             )
 
-        # Sort suppliers by profit (most valuable first)
-        supplier_stats.sort(key=lambda s: s["profit"], reverse=True)
+        # Sort by sales activity — most-active suppliers float to the top so
+        # the operator sees the relationships that drive turnover first.
+        supplier_stats.sort(key=lambda s: s["sales"], reverse=True)
 
         context = {
             "today_label": today.strftime("%d.%m.%Y"),
@@ -1003,7 +993,6 @@ class StatisticsView(AdminOnlyMixin, View):
             "week_stats": week_stats,
             "month_stats": month_stats,
             "year_stats": year_stats,
-            "today_revenue_delta": today_revenue_delta,
             "today_profit_delta": today_profit_delta,
             "last_7_days": last_7_days,
             "monthly_data": monthly_data,

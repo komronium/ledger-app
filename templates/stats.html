@@ -10,7 +10,7 @@
     </div>
 </div>
 
-<!-- HERO: Today's profit -->
+<!-- HERO: Today's cash-flow profit -->
 <div class="bg-gradient-to-br {% if today_stats.profit >= 0 %}from-emerald-500 to-emerald-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-6 sm:p-7 mb-5 shadow-md text-white">
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
@@ -27,31 +27,31 @@
                     Kechagiga nisbatan <span class="font-bold">{{ today_profit_delta }}%</span>
                     {% endif %}
                 {% else %}
-                    Bugun {{ today_stats.orders_count }} ta buyurtma
+                    Bugun {{ today_stats.customer_payments_count }} ta to'lov · {{ today_stats.orders_count }} ta buyurtma
                 {% endif %}
             </p>
         </div>
         <div class="grid grid-cols-3 gap-3 sm:gap-5 text-right shrink-0">
             <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Sotuv</p>
-                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">{{ today_stats.revenue|format_currency }}</p>
+                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Mijoz to'lovi</p>
+                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">+{{ today_stats.customer_payments|format_currency }}</p>
             </div>
             <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Tannarx</p>
-                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">{{ today_stats.cogs|format_currency }}</p>
+                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Firma to'lovi</p>
+                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">−{{ today_stats.supplier_payments|format_currency }}</p>
             </div>
             <div>
                 <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Xarajat</p>
-                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">{{ today_stats.expenses|format_currency }}</p>
+                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">−{{ today_stats.expenses|format_currency }}</p>
             </div>
         </div>
     </div>
 
     <!-- Formula explainer -->
     <div class="mt-5 pt-4 border-t border-white/20 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold opacity-90">
-        <span>Foyda = Sotuv - Tannarx - Xarajat</span>
+        <span>Foyda = Mijoz to'lovi − Firma to'lovi − Xarajat</span>
         <span class="opacity-60">·</span>
-        <span>{{ today_stats.orders_count }} ta buyurtma · {{ today_stats.quantity|format_currency }} kg</span>
+        <span>{{ today_stats.orders_count }} ta yangi buyurtma (qarzga)</span>
     </div>
 </div>
 
@@ -62,20 +62,24 @@
     <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
         <div class="flex items-center justify-between mb-3">
             <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Shu hafta</p>
-            <span class="text-[10px] text-gray-400">{{ week_stats.orders_count }} buyurtma</span>
+            <span class="text-[10px] text-gray-400">{{ week_stats.customer_payments_count }} to'lov</span>
         </div>
         <p class="text-2xl font-black {% if week_stats.profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %} leading-none">
             {% if week_stats.profit >= 0 %}+{% endif %}{{ week_stats.profit|format_currency }}
         </p>
         <p class="text-[10px] text-gray-400 font-semibold mt-1">FOYDA · so'm</p>
-        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-[11px]">
+        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[11px]">
             <div>
-                <p class="text-gray-400">Sotuv</p>
-                <p class="font-bold text-gray-700">{{ week_stats.revenue|format_currency }}</p>
+                <p class="text-gray-400">Mijoz to'l.</p>
+                <p class="font-bold text-emerald-600">+{{ week_stats.customer_payments|format_currency }}</p>
+            </div>
+            <div>
+                <p class="text-gray-400">Firma to'l.</p>
+                <p class="font-bold text-orange-500">−{{ week_stats.supplier_payments|format_currency }}</p>
             </div>
             <div>
                 <p class="text-gray-400">Xarajat</p>
-                <p class="font-bold text-gray-700">{{ week_stats.expenses|format_currency }}</p>
+                <p class="font-bold text-gray-600">−{{ week_stats.expenses|format_currency }}</p>
             </div>
         </div>
     </div>
@@ -84,20 +88,24 @@
     <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
         <div class="flex items-center justify-between mb-3">
             <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">{{ current_month_label }}</p>
-            <span class="text-[10px] text-gray-400">{{ month_stats.orders_count }} buyurtma</span>
+            <span class="text-[10px] text-gray-400">{{ month_stats.customer_payments_count }} to'lov</span>
         </div>
         <p class="text-2xl font-black {% if month_stats.profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %} leading-none">
             {% if month_stats.profit >= 0 %}+{% endif %}{{ month_stats.profit|format_currency }}
         </p>
         <p class="text-[10px] text-gray-400 font-semibold mt-1">FOYDA · so'm</p>
-        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-[11px]">
+        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[11px]">
             <div>
-                <p class="text-gray-400">Sotuv</p>
-                <p class="font-bold text-gray-700">{{ month_stats.revenue|format_currency }}</p>
+                <p class="text-gray-400">Mijoz to'l.</p>
+                <p class="font-bold text-emerald-600">+{{ month_stats.customer_payments|format_currency }}</p>
+            </div>
+            <div>
+                <p class="text-gray-400">Firma to'l.</p>
+                <p class="font-bold text-orange-500">−{{ month_stats.supplier_payments|format_currency }}</p>
             </div>
             <div>
                 <p class="text-gray-400">Xarajat</p>
-                <p class="font-bold text-gray-700">{{ month_stats.expenses|format_currency }}</p>
+                <p class="font-bold text-gray-600">−{{ month_stats.expenses|format_currency }}</p>
             </div>
         </div>
     </div>
@@ -106,20 +114,24 @@
     <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
         <div class="flex items-center justify-between mb-3">
             <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Shu yil</p>
-            <span class="text-[10px] text-gray-400">{{ year_stats.orders_count }} buyurtma</span>
+            <span class="text-[10px] text-gray-400">{{ year_stats.customer_payments_count }} to'lov</span>
         </div>
         <p class="text-2xl font-black {% if year_stats.profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %} leading-none">
             {% if year_stats.profit >= 0 %}+{% endif %}{{ year_stats.profit|format_currency }}
         </p>
         <p class="text-[10px] text-gray-400 font-semibold mt-1">FOYDA · so'm</p>
-        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-[11px]">
+        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[11px]">
             <div>
-                <p class="text-gray-400">Sotuv</p>
-                <p class="font-bold text-gray-700">{{ year_stats.revenue|format_currency }}</p>
+                <p class="text-gray-400">Mijoz to'l.</p>
+                <p class="font-bold text-emerald-600">+{{ year_stats.customer_payments|format_currency }}</p>
+            </div>
+            <div>
+                <p class="text-gray-400">Firma to'l.</p>
+                <p class="font-bold text-orange-500">−{{ year_stats.supplier_payments|format_currency }}</p>
             </div>
             <div>
                 <p class="text-gray-400">Xarajat</p>
-                <p class="font-bold text-gray-700">{{ year_stats.expenses|format_currency }}</p>
+                <p class="font-bold text-gray-600">−{{ year_stats.expenses|format_currency }}</p>
             </div>
         </div>
     </div>
@@ -142,7 +154,7 @@
                         <div class="absolute -top-6 text-[10px] font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md px-2 py-0.5 rounded whitespace-nowrap z-10">
                             {{ d.profit|format_currency }}
                         </div>
-                        <div class="w-full {% if d.is_today %}bg-emerald-500{% elif d.profit > 0 %}bg-blue-400{% elif d.profit < 0 %}bg-red-400{% else %}bg-gray-200{% endif %} rounded-t-md transition-all"
+                        <div class="w-full {% if d.profit < 0 %}bg-red-400{% elif d.is_today %}bg-emerald-500{% elif d.profit > 0 %}bg-blue-400{% else %}bg-gray-200{% endif %} rounded-t-md transition-all"
                             style="height:{{ d.bar_pct }}%; min-height:4px;"></div>
                     </div>
                     <div class="text-center">
@@ -246,8 +258,8 @@
             <thead>
                 <tr class="bg-gray-50 border-b border-gray-100">
                     <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Oy</th>
-                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Buyurtma</th>
-                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Sotuv</th>
+                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Mijoz to'l.</th>
+                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Firma to'l.</th>
                     <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Xarajat</th>
                     <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Foyda</th>
                     <th class="px-5 py-3 w-32 hidden sm:table-cell"></th>
@@ -255,11 +267,11 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for m in monthly_data %}
-                {% if m.count > 0 or m.expenses > 0 %}
+                {% if m.customer_payments > 0 or m.supplier_payments > 0 or m.expenses > 0 %}
                 <tr class="hover:bg-gray-50/60 transition-colors">
                     <td class="px-5 py-3 font-semibold text-gray-700">{{ m.month }}</td>
-                    <td class="px-5 py-3 text-right text-gray-500 text-xs">{{ m.count }} ta</td>
-                    <td class="px-5 py-3 text-right text-gray-700 whitespace-nowrap">{{ m.revenue|format_currency }}</td>
+                    <td class="px-5 py-3 text-right text-emerald-600 whitespace-nowrap font-medium">{{ m.customer_payments|format_currency }}</td>
+                    <td class="px-5 py-3 text-right text-orange-500 whitespace-nowrap text-xs">{{ m.supplier_payments|format_currency }}</td>
                     <td class="px-5 py-3 text-right text-gray-500 whitespace-nowrap text-xs">{{ m.expenses|format_currency }}</td>
                     <td class="px-5 py-3 text-right font-bold whitespace-nowrap {% if m.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
                         {% if m.profit >= 0 %}+{% endif %}{{ m.profit|format_currency }}
@@ -304,8 +316,8 @@
                     <p class="text-sm font-semibold text-gray-800 truncate">{{ stat.supplier.name }}</p>
                     <p class="text-[11px] text-gray-400 mt-0.5 sm:hidden">
                         Sotuv {{ stat.sales|format_currency }} ·
-                        <span class="{% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %} font-semibold">
-                            {% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }} foyda
+                        <span class="{% if stat.debt > 0 %}text-red-500{% else %}text-emerald-600{% endif %} font-semibold">
+                            Qarz {{ stat.debt|format_currency }}
                         </span>
                     </p>
                 </div>
@@ -315,14 +327,12 @@
                 <div class="hidden sm:flex items-center gap-2 text-xs">
                     <span class="text-gray-400">Xarid <strong class="text-gray-700">{{ stat.purchased|format_currency }}</strong></span>
                     <span class="text-gray-300">·</span>
+                    <span class="text-gray-400">To'lov <strong class="text-emerald-600">{{ stat.paid|format_currency }}</strong></span>
+                    <span class="text-gray-300">·</span>
                     <span class="text-gray-400">Sotuv <strong class="text-gray-700">{{ stat.sales|format_currency }}</strong></span>
                     <span class="text-gray-300">·</span>
-                    <span class="{% if stat.debt > 0 %}text-red-500{% else %}text-emerald-600{% endif %} font-semibold">
+                    <span class="{% if stat.debt > 0 %}text-red-500{% else %}text-emerald-600{% endif %} font-bold">
                         Qarz {{ stat.debt|format_currency }}
-                    </span>
-                    <span class="text-gray-300">·</span>
-                    <span class="{% if stat.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %} font-bold">
-                        {% if stat.profit >= 0 %}+{% endif %}{{ stat.profit|format_currency }}
                     </span>
                 </div>
                 <svg id="arrow-f{{ forloop.counter }}"
@@ -342,7 +352,6 @@
                             <th class="px-5 py-2.5 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Xarid</th>
                             <th class="px-5 py-2.5 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">To'lov</th>
                             <th class="px-5 py-2.5 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Sotuv</th>
-                            <th class="px-5 py-2.5 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Foyda</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -353,9 +362,6 @@
                             <td class="px-5 py-2.5 text-right text-gray-500">{{ m.purchased|format_currency }}</td>
                             <td class="px-5 py-2.5 text-right text-emerald-600 font-medium">{{ m.paid|format_currency }}</td>
                             <td class="px-5 py-2.5 text-right text-gray-700 font-semibold">{{ m.sales|format_currency }}</td>
-                            <td class="px-5 py-2.5 text-right font-bold {% if m.profit >= 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
-                                {% if m.profit >= 0 %}+{% endif %}{{ m.profit|format_currency }}
-                            </td>
                         </tr>
                         {% endif %}
                         {% endfor %}
