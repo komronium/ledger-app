@@ -319,14 +319,16 @@ class OrderView(LoginRequiredMixin, View):
                     {
                         "id": it["id"],
                         "name": it["product_name"],
-                        "quantity": it["quantity"],
-                        "price_per_kg": it["price_per_kg"],
-                        "total_price": it["total_price"],
+                        "quantity": int(it["quantity"]),
+                        "price_per_kg": int(it["price_per_kg"]),
+                        "total_price": int(it["total_price"]),
                     }
                     for it in row.get("items", [])
                 ],
-                "total_price": row.get("total_price", 0),
-                "remaining_debt": row.get("remaining_debt", 0),
+                # remaining_debt may be Decimal because PaymentHistory.amount is
+                # a DecimalField — coerce to int for JSON.
+                "total_price": int(row.get("total_price", 0)),
+                "remaining_debt": int(row.get("remaining_debt", 0)),
             })
         orders_view_json = _json.dumps(orders_for_js)
 
