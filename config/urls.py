@@ -3,7 +3,8 @@ from django.urls import path
 from finance.views import (
     LoginView, LogoutView,
     OrderView, CustomerView, DebtView, ProductView, StatisticsView, ProductDeleteView,
-    OrderEditView, OrderDeleteView, CustomerDeleteView, PaymentDeleteView, PaymentEditView,
+    OrderEditView, OrderDeleteView, OrderBatchEditView, OrderBatchDeleteView,
+    CustomerDeleteView, PaymentDeleteView, PaymentEditView,
     SupplierView, SupplierDeleteView, ProductEditView,
     ExpenseView, ExpenseDeleteView,
     SupplierDetailView, PurchaseDeleteView, SupplierPaymentDeleteView,
@@ -21,6 +22,8 @@ urlpatterns = [
     path('', OrderView.as_view(), name='dashboard'),
     path('order/edit/<int:pk>/', OrderEditView.as_view(), name='order_edit'),
     path('order/delete/<int:pk>/', OrderDeleteView.as_view(), name='order_delete'),
+    path('order/batch/edit/<str:batch_id>/', OrderBatchEditView.as_view(), name='order_batch_edit'),
+    path('order/batch/delete/<str:batch_id>/', OrderBatchDeleteView.as_view(), name='order_batch_delete'),
     path('customer/', CustomerView.as_view(), name='customer'),
     path('customer/delete/<int:pk>/', CustomerDeleteView.as_view(), name='customer_delete'),
     path('debt/', DebtView.as_view(), name='debts'),

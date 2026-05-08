@@ -527,6 +527,7 @@
 </div>
 
 <script>
+    window.__csrfToken = '{{ csrf_token }}';
     let ordersViewData = JSON.parse('{{ orders_view_json|escapejs }}' || '[]');
     let currentlyViewedOrder = null;
 
@@ -558,16 +559,46 @@
             list.appendChild(item);
         });
 
-        // Build action buttons (edit single, or view-only for batches with multiple items)
+        // Build action buttons. Single orders edit/delete by order id;
+        // multi-item batches edit/delete the whole batch.
         const actions = document.getElementById('viewedOrderActions');
         actions.innerHTML = '';
-        if (data.items.length === 1) {
-            const editBtn = document.createElement('a');
-            editBtn.href = '/order/edit/' + data.items[0].id + '/';
-            editBtn.className = 'flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all';
-            editBtn.textContent = "Tahrirlash";
-            actions.appendChild(editBtn);
-        }
+
+        const isBatch = data.items.length > 1;
+        const editHref = isBatch
+            ? '/order/batch/edit/' + data.batch_id + '/'
+            : '/order/edit/' + data.items[0].id + '/';
+        const deleteAction = isBatch
+            ? '/order/batch/delete/' + data.batch_id + '/'
+            : '/order/delete/' + data.items[0].id + '/';
+        const confirmMsg = isBatch
+            ? "Butun buyurtmani (" + data.items.length + " ta mahsulot) o'chirishni tasdiqlaysizmi? Tovarlar omborga qaytariladi."
+            : "Buyurtmani o'chirishni tasdiqlaysizmi? Tovar omborga qaytariladi.";
+
+        const editBtn = document.createElement('a');
+        editBtn.href = editHref;
+        editBtn.className = 'flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all';
+        editBtn.textContent = "Tahrirlash";
+        actions.appendChild(editBtn);
+
+        const deleteForm = document.createElement('form');
+        deleteForm.method = 'POST';
+        deleteForm.action = deleteAction;
+        deleteForm.className = 'flex-1';
+        deleteForm.onsubmit = (e) => {
+            if (!confirm(confirmMsg)) { e.preventDefault(); return false; }
+        };
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = window.__csrfToken || '';
+        deleteForm.appendChild(csrfInput);
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'submit';
+        deleteBtn.className = 'w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 py-2.5 rounded-lg font-semibold text-sm transition-all';
+        deleteBtn.textContent = "O'chirish";
+        deleteForm.appendChild(deleteBtn);
+        actions.appendChild(deleteForm);
 
         document.getElementById('viewOrderModal').classList.remove('hidden');
     }

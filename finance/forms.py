@@ -38,16 +38,18 @@ def _to_decimal(value):
 class OrderForm(forms.ModelForm):
     customer_id = forms.IntegerField()
     product_id = forms.IntegerField()
+    order_date = forms.DateField(required=False)
 
     class Meta:
         model = Order
-        fields = ['customer_id', 'product_id', 'quantity', 'price_per_kg']
+        fields = ['customer_id', 'product_id', 'quantity', 'price_per_kg', 'order_date']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['customer_id'].initial = self.instance.customer.id if self.instance.customer else None
             self.fields['product_id'].initial = self.instance.product.id if self.instance.product else None
+            self.fields['order_date'].initial = self.instance.order_date
 
     def clean(self):
         cleaned_data = super().clean()
@@ -76,6 +78,9 @@ class OrderForm(forms.ModelForm):
         new_product = Product.objects.get(id=self.cleaned_data['product_id'])
         order.customer = new_customer
         order.product = new_product
+        new_date = self.cleaned_data.get('order_date')
+        if new_date:
+            order.order_date = new_date
 
         if not commit:
             return order
@@ -88,30 +93,49 @@ class OrderForm(forms.ModelForm):
                 old_quantity = old_order.quantity
                 old_remaining_debt = old_order.remaining_debt
 
-                # 1) Restore the old product's stock
-                if old_product:
+                same_product = old_product and old_product.pk == new_product.pk
+
+                if same_product:
+                    # Single stock adjustment based on net delta — avoids a
+                    # transient negative if old_product == new_product and the
+                    # current free stock is < old_quantity (would happen on
+                    # quantity decreases right at the inventory edge).
+                    new_product.refresh_from_db()
                     old_free = order._compute_promo_free(old_product, old_quantity)
-                    old_product.quantity += (old_quantity + old_free)
-                    old_product.save()
+                    new_free = order._compute_promo_free(new_product, order.quantity)
+                    delta = (order.quantity + new_free) - (old_quantity + old_free)
+                    if delta > 0 and new_product.quantity < delta:
+                        raise ValueError(
+                            f"Omborda {new_product.quantity} ta mavjud, "
+                            f"qo'shimcha {delta} ta kerak."
+                        )
+                    new_product.quantity -= delta
+                    new_product.save()
+                else:
+                    if old_product:
+                        old_free = order._compute_promo_free(old_product, old_quantity)
+                        old_product.quantity += (old_quantity + old_free)
+                        old_product.save()
+                    new_product.refresh_from_db()
+                    new_free = order._compute_promo_free(new_product, order.quantity)
+                    if new_product.quantity < order.quantity + new_free:
+                        raise ValueError(
+                            f"Omborda {new_product.quantity} ta mavjud, "
+                            f"{order.quantity + new_free} ta kerak."
+                        )
+                    new_product.quantity -= (order.quantity + new_free)
+                    new_product.save()
 
-                # 2) Deduct stock for the new product/quantity
-                new_product.refresh_from_db()
-                new_free = order._compute_promo_free(new_product, order.quantity)
-                new_product.quantity -= (order.quantity + new_free)
-                new_product.save()
-
-                # 3) Recompute totals; preserve the difference between previous
-                # remaining_debt and the new total_price so partial payments
-                # already recorded are not wiped out.
+                # Recompute totals; preserve already-paid portion so partial
+                # payments aren't wiped when quantity/price change.
                 new_total_price = order.quantity * order.price_per_kg
-                paid_off = old_order.total_price - old_remaining_debt  # may be 0
+                paid_off = old_order.total_price - old_remaining_debt
                 order.total_price = new_total_price
                 order.remaining_debt = max(new_total_price - paid_off, 0)
 
                 # Skip Order.save's inventory side-effects (we already did them)
                 super(Order, order).save()
 
-                # 4) Adjust customer debt by the change in remaining_debt
                 if old_customer and old_customer.pk != new_customer.pk:
                     old_customer.total_debt -= old_remaining_debt
                     old_customer.save()

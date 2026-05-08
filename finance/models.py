@@ -1,3 +1,5 @@
+from datetime import date as _date
+
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_save
@@ -90,7 +92,7 @@ class Order(models.Model):
 
     quantity = models.IntegerField(verbose_name="Miqdori")
     price_per_kg = models.IntegerField()
-    order_date = models.DateField(auto_now_add=True)
+    order_date = models.DateField(default=_date.today)
     batch_id = models.CharField(max_length=36, null=True, blank=True, db_index=True)
 
     total_price = models.IntegerField()

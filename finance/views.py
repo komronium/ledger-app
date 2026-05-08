@@ -445,10 +445,31 @@ class OrderEditView(LoginRequiredMixin, View):
         form = OrderForm(request.POST, instance=order)
 
         if form.is_valid():
-            form.save()
-            return redirect("dashboard")
+            try:
+                form.save()
+                return redirect("dashboard")
+            except ValueError as e:
+                form.add_error(None, str(e))
 
         return render(request, self.template_name, self.get_context(form, order))
+
+
+def _delete_order_with_side_effects(order):
+    """Restore stock and customer debt for one order, then delete it.
+
+    Caller is responsible for wrapping in a transaction.
+    """
+    customer = order.customer
+    if customer:
+        Customer.objects.filter(pk=customer.pk).update(
+            total_debt=models.F("total_debt") - order.remaining_debt
+        )
+    if order.product:
+        free_count = order._compute_promo_free(order.product, order.quantity)
+        Product.objects.filter(pk=order.product.pk).update(
+            quantity=models.F("quantity") + order.quantity + free_count
+        )
+    order.delete()
 
 
 class OrderDeleteView(LoginRequiredMixin, View):
@@ -456,18 +477,136 @@ class OrderDeleteView(LoginRequiredMixin, View):
         from django.db import transaction
         order = get_object_or_404(Order, id=pk)
         with transaction.atomic():
-            customer = order.customer
-            if customer:
-                customer.total_debt -= order.remaining_debt
-                customer.save()
-            if order.product:
-                free_count = order._compute_promo_free(order.product, order.quantity)
-                order.product.quantity += order.quantity + free_count
-                order.product.save()
-            order.delete()
+            _delete_order_with_side_effects(order)
         return redirect("dashboard")
 
     # GET kept for backwards-compat with the existing edit-page link
+    get = post
+
+
+class OrderBatchEditView(LoginRequiredMixin, View):
+    """Edit all orders in a batch (one customer, multiple items, same date).
+
+    Lets the operator change the date and per-item quantity/price. Items can
+    also be deleted individually here. Stock and customer debt are kept in
+    sync with the same rules used for single-order edits.
+    """
+    template_name = "order_batch_edit.html"
+
+    def _orders(self, batch_id):
+        return list(
+            Order.objects.filter(batch_id=batch_id)
+            .select_related("customer", "product")
+            .order_by("id")
+        )
+
+    def get(self, request, batch_id):
+        orders = self._orders(batch_id)
+        if not orders:
+            return redirect("dashboard")
+        errors = request.session.pop("batch_edit_errors", None)
+        return render(
+            request,
+            self.template_name,
+            {
+                "batch_id": batch_id,
+                "orders": orders,
+                "customer": orders[0].customer,
+                "order_date": orders[0].order_date,
+                "products": Product.objects.all(),
+                "errors": errors,
+                "page": "dashboard",
+            },
+        )
+
+    def post(self, request, batch_id):
+        from django.db import transaction
+
+        orders = self._orders(batch_id)
+        if not orders:
+            return redirect("dashboard")
+
+        # Parse date (shared across the batch)
+        new_date_raw = request.POST.get("order_date")
+        new_date = None
+        if new_date_raw:
+            try:
+                new_date = date.fromisoformat(new_date_raw)
+            except ValueError:
+                new_date = None
+
+        errors = []
+        try:
+            with transaction.atomic():
+                for order in orders:
+                    prefix = f"item_{order.id}_"
+                    if request.POST.get(prefix + "delete") == "1":
+                        _delete_order_with_side_effects(order)
+                        continue
+
+                    try:
+                        new_qty = int(request.POST.get(prefix + "quantity", order.quantity))
+                        new_price = int(request.POST.get(prefix + "price_per_kg", order.price_per_kg))
+                    except (TypeError, ValueError):
+                        errors.append(f"Buyurtma #{order.id}: noto'g'ri qiymat.")
+                        raise
+
+                    if new_qty <= 0 or new_price < 0:
+                        errors.append(f"Buyurtma #{order.id}: miqdor/narx noto'g'ri.")
+                        raise ValueError("invalid")
+
+                    old_qty = order.quantity
+                    old_remaining_debt = order.remaining_debt
+                    old_total_price = order.total_price
+
+                    if order.product:
+                        product = Product.objects.select_for_update().get(pk=order.product.pk)
+                        old_free = order._compute_promo_free(product, old_qty)
+                        new_free = order._compute_promo_free(product, new_qty)
+                        delta = (new_qty + new_free) - (old_qty + old_free)
+                        if delta > 0 and product.quantity < delta:
+                            errors.append(
+                                f"{product.name}: qo'shimcha {delta} ta kerak, "
+                                f"omborda {product.quantity} ta mavjud."
+                            )
+                            raise ValueError("not enough stock")
+                        product.quantity -= delta
+                        product.save()
+
+                    new_total = new_qty * new_price
+                    paid_off = old_total_price - old_remaining_debt
+                    new_remaining = max(new_total - paid_off, 0)
+
+                    order.quantity = new_qty
+                    order.price_per_kg = new_price
+                    order.total_price = new_total
+                    order.remaining_debt = new_remaining
+                    if new_date:
+                        order.order_date = new_date
+                    super(Order, order).save()
+
+                    if order.customer:
+                        Customer.objects.filter(pk=order.customer.pk).update(
+                            total_debt=models.F("total_debt") + (new_remaining - old_remaining_debt)
+                        )
+        except Exception as e:
+            if not errors:
+                errors.append(f"Saqlashda xatolik: {e}")
+            request.session["batch_edit_errors"] = errors
+            return redirect("order_batch_edit", batch_id=batch_id)
+
+        return redirect("dashboard")
+
+
+class OrderBatchDeleteView(LoginRequiredMixin, View):
+    def post(self, request, batch_id):
+        from django.db import transaction
+        orders = list(Order.objects.filter(batch_id=batch_id).select_related("customer", "product"))
+        with transaction.atomic():
+            for order in orders:
+                _delete_order_with_side_effects(order)
+        return redirect("dashboard")
+
     get = post
 
 
