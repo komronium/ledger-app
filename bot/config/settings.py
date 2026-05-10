@@ -1,7 +1,6 @@
 """
 Bot configuration settings
 """
-import os
 from pathlib import Path
 from decouple import config as decouple_config
 
@@ -20,6 +19,10 @@ class Settings:
     # Telegram Bot
     BOT_TOKEN = decouple_config('BOT_TOKEN', default='')
 
+    # Django HTTP API (the bot lives on a separate host)
+    DJANGO_API_URL = decouple_config('DJANGO_API_URL', default='').rstrip('/')
+    BOT_API_TOKEN = decouple_config('BOT_API_TOKEN', default='')
+
     # Network — proxy & timeouts (helpful when the server's network
     # blocks/throttles Telegram API; e.g. Russia-hosted VPS)
     # Examples:
@@ -28,10 +31,6 @@ class Settings:
     BOT_PROXY_URL = decouple_config('BOT_PROXY_URL', default='')
     BOT_REQUEST_TIMEOUT = decouple_config('BOT_REQUEST_TIMEOUT', default=60, cast=int)
     BOT_POLLING_TIMEOUT = decouple_config('BOT_POLLING_TIMEOUT', default=30, cast=int)
-
-    # Django Database
-    DB_NAME = decouple_config('DB_NAME', default='db.sqlite3')
-    DB_PATH = decouple_config('DB_PATH', default='../db.sqlite3')
 
     # Logging
     LOG_LEVEL = decouple_config('LOG_LEVEL', default='INFO')
@@ -43,6 +42,10 @@ class Settings:
         """Validate settings on initialization"""
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN is not set in environment variables")
+        if not self.DJANGO_API_URL:
+            raise ValueError("DJANGO_API_URL is not set in environment variables")
+        if not self.BOT_API_TOKEN:
+            raise ValueError("BOT_API_TOKEN is not set in environment variables")
 
         # Create temp directory if it doesn't exist
         self.PDF_TEMP_DIR.mkdir(exist_ok=True)

@@ -23,7 +23,7 @@ echo "✅ temp_pdfs directory created"
 # Install requirements
 echo ""
 echo "Installing requirements..."
-pip install -r requirements.txt
+pip install -r requirements-bot.txt
 
 echo ""
 echo "🎉 Setup complete!"

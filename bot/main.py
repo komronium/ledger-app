@@ -13,6 +13,7 @@ from aiogram.types import BotCommand
 from bot.config.settings import load_env, get_settings
 from bot.handlers import start_router, phone_router
 from bot.middlewares import LoggingMiddleware
+from bot.services.database import close_session as close_api_session
 
 
 # Setup logging
@@ -78,6 +79,7 @@ async def run_polling(settings, dp: Dispatcher) -> None:
         )
     finally:
         await bot.session.close()
+        await close_api_session()
 
 
 async def main():

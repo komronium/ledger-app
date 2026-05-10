@@ -8,7 +8,6 @@ from django.contrib.auth.views import LoginView as LView
 from django.db import models
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.timezone import make_naive
 from django.views import View
 
 from finance.filters import CustomerFilter, OrderFilter, PaymentFilter
@@ -117,14 +116,16 @@ class OrderView(LoginRequiredMixin, View):
                 }
                 ordered_keys.append(key)
             g = groups[key]
-            g["items"].append({
-                "id": order.id,
-                "product": order.product,
-                "product_name": order.product.name if order.product else "—",
-                "quantity": order.quantity,
-                "price_per_kg": order.price_per_kg,
-                "total_price": order.total_price,
-            })
+            g["items"].append(
+                {
+                    "id": order.id,
+                    "product": order.product,
+                    "product_name": order.product.name if order.product else "—",
+                    "quantity": order.quantity,
+                    "price_per_kg": order.price_per_kg,
+                    "total_price": order.total_price,
+                }
+            )
             g["quantity"] += order.quantity
             g["total_price"] += order.total_price
             g["remaining_debt"] += order.remaining_debt
@@ -275,14 +276,16 @@ class OrderView(LoginRequiredMixin, View):
                     }
                     ordered_keys.append(key)
                 g = groups[key]
-                g["items"].append({
-                    "id": order.id,
-                    "product": order.product,
-                    "product_name": order.product.name if order.product else "—",
-                    "quantity": order.quantity,
-                    "price_per_kg": order.price_per_kg,
-                    "total_price": order.total_price,
-                })
+                g["items"].append(
+                    {
+                        "id": order.id,
+                        "product": order.product,
+                        "product_name": order.product.name if order.product else "—",
+                        "quantity": order.quantity,
+                        "price_per_kg": order.price_per_kg,
+                        "total_price": order.total_price,
+                    }
+                )
                 g["quantity"] += order.quantity
                 g["total_price"] += order.total_price
                 g["remaining_debt"] += order.remaining_debt
@@ -309,27 +312,33 @@ class OrderView(LoginRequiredMixin, View):
             if row.get("type") != "order":
                 orders_for_js.append({"type": "payment"})
                 continue
-            orders_for_js.append({
-                "type": "order",
-                "batch_id": row.get("batch_id"),
-                "primary_id": row.get("primary_id"),
-                "customer_name": row["customer"].name if row.get("customer") else "",
-                "order_date": row["order_date"].strftime("%d.%m.%Y") if row.get("order_date") else "",
-                "items": [
-                    {
-                        "id": it["id"],
-                        "name": it["product_name"],
-                        "quantity": int(it["quantity"]),
-                        "price_per_kg": int(it["price_per_kg"]),
-                        "total_price": int(it["total_price"]),
-                    }
-                    for it in row.get("items", [])
-                ],
-                # remaining_debt may be Decimal because PaymentHistory.amount is
-                # a DecimalField — coerce to int for JSON.
-                "total_price": int(row.get("total_price", 0)),
-                "remaining_debt": int(row.get("remaining_debt", 0)),
-            })
+            orders_for_js.append(
+                {
+                    "type": "order",
+                    "batch_id": row.get("batch_id"),
+                    "primary_id": row.get("primary_id"),
+                    "customer_name": row["customer"].name
+                    if row.get("customer")
+                    else "",
+                    "order_date": row["order_date"].strftime("%d.%m.%Y")
+                    if row.get("order_date")
+                    else "",
+                    "items": [
+                        {
+                            "id": it["id"],
+                            "name": it["product_name"],
+                            "quantity": int(it["quantity"]),
+                            "price_per_kg": int(it["price_per_kg"]),
+                            "total_price": int(it["total_price"]),
+                        }
+                        for it in row.get("items", [])
+                    ],
+                    # remaining_debt may be Decimal because PaymentHistory.amount is
+                    # a DecimalField — coerce to int for JSON.
+                    "total_price": int(row.get("total_price", 0)),
+                    "remaining_debt": int(row.get("remaining_debt", 0)),
+                }
+            )
         orders_view_json = _json.dumps(orders_for_js)
 
         errors = request.session.pop("order_errors", None)
@@ -373,7 +382,9 @@ class OrderView(LoginRequiredMixin, View):
                 requested_quantity = int(item.get("quantity", 0))
                 price_per_kg = int(item.get("price_per_kg", 0))
             except (Customer.DoesNotExist, Product.DoesNotExist, ValueError, TypeError):
-                errors.append("Buyurtma ma'lumotlari noto'g'ri (mijoz, mahsulot yoki miqdor).")
+                errors.append(
+                    "Buyurtma ma'lumotlari noto'g'ri (mijoz, mahsulot yoki miqdor)."
+                )
                 continue
 
             if requested_quantity <= 0:
@@ -388,8 +399,14 @@ class OrderView(LoginRequiredMixin, View):
                     # Re-fetch with row lock so concurrent orders don't race
                     product = Product.objects.select_for_update().get(pk=product.pk)
                     free_count = 0
-                    if product.promo_buy and product.promo_free and product.promo_buy > 0:
-                        free_count = (requested_quantity // product.promo_buy) * product.promo_free
+                    if (
+                        product.promo_buy
+                        and product.promo_free
+                        and product.promo_buy > 0
+                    ):
+                        free_count = (
+                            requested_quantity // product.promo_buy
+                        ) * product.promo_free
                     total_to_deduct = requested_quantity + free_count
                     if product.quantity < total_to_deduct:
                         if free_count:
@@ -411,7 +428,7 @@ class OrderView(LoginRequiredMixin, View):
                     )
                     order.save()
                     Customer.objects.filter(pk=customer.pk).update(
-                        total_debt=models.F('total_debt') + order.remaining_debt
+                        total_debt=models.F("total_debt") + order.remaining_debt
                     )
             except Exception as e:
                 errors.append(f"Buyurtmani saqlashda xatolik: {e}")
@@ -475,6 +492,7 @@ def _delete_order_with_side_effects(order):
 class OrderDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         from django.db import transaction
+
         order = get_object_or_404(Order, id=pk)
         with transaction.atomic():
             _delete_order_with_side_effects(order)
@@ -491,6 +509,7 @@ class OrderBatchEditView(LoginRequiredMixin, View):
     also be deleted individually here. Stock and customer debt are kept in
     sync with the same rules used for single-order edits.
     """
+
     template_name = "order_batch_edit.html"
 
     def _orders(self, batch_id):
@@ -545,8 +564,14 @@ class OrderBatchEditView(LoginRequiredMixin, View):
                         continue
 
                     try:
-                        new_qty = int(request.POST.get(prefix + "quantity", order.quantity))
-                        new_price = int(request.POST.get(prefix + "price_per_kg", order.price_per_kg))
+                        new_qty = int(
+                            request.POST.get(prefix + "quantity", order.quantity)
+                        )
+                        new_price = int(
+                            request.POST.get(
+                                prefix + "price_per_kg", order.price_per_kg
+                            )
+                        )
                     except (TypeError, ValueError):
                         errors.append(f"Buyurtma #{order.id}: noto'g'ri qiymat.")
                         raise
@@ -560,7 +585,9 @@ class OrderBatchEditView(LoginRequiredMixin, View):
                     old_total_price = order.total_price
 
                     if order.product:
-                        product = Product.objects.select_for_update().get(pk=order.product.pk)
+                        product = Product.objects.select_for_update().get(
+                            pk=order.product.pk
+                        )
                         old_free = order._compute_promo_free(product, old_qty)
                         new_free = order._compute_promo_free(product, new_qty)
                         delta = (new_qty + new_free) - (old_qty + old_free)
@@ -587,7 +614,8 @@ class OrderBatchEditView(LoginRequiredMixin, View):
 
                     if order.customer:
                         Customer.objects.filter(pk=order.customer.pk).update(
-                            total_debt=models.F("total_debt") + (new_remaining - old_remaining_debt)
+                            total_debt=models.F("total_debt")
+                            + (new_remaining - old_remaining_debt)
                         )
         except Exception as e:
             if not errors:
@@ -601,7 +629,12 @@ class OrderBatchEditView(LoginRequiredMixin, View):
 class OrderBatchDeleteView(LoginRequiredMixin, View):
     def post(self, request, batch_id):
         from django.db import transaction
-        orders = list(Order.objects.filter(batch_id=batch_id).select_related("customer", "product"))
+
+        orders = list(
+            Order.objects.filter(batch_id=batch_id).select_related(
+                "customer", "product"
+            )
+        )
         with transaction.atomic():
             for order in orders:
                 _delete_order_with_side_effects(order)
@@ -740,6 +773,7 @@ class PaymentEditView(AdminOnlyMixin, View):
 class PaymentDeleteView(AdminOnlyMixin, View):
     def post(self, request, pk):
         from django.db import transaction
+
         payment = get_object_or_404(PaymentHistory, id=pk)
         with transaction.atomic():
             customer = payment.customer
@@ -895,9 +929,7 @@ class StatisticsView(AdminOnlyMixin, View):
         supplier_pay_qs = SupplierPayment.objects.filter(
             paid_at__gte=date_from, paid_at__lte=date_to
         )
-        expense_qs = Expense.objects.filter(
-            date__gte=date_from, date__lte=date_to
-        )
+        expense_qs = Expense.objects.filter(date__gte=date_from, date__lte=date_to)
         order_qs = Order.objects.filter(
             order_date__gte=date_from, order_date__lte=date_to
         )
@@ -1120,9 +1152,9 @@ class StatisticsView(AdminOnlyMixin, View):
             .order_by("-sold_revenue")[:5]
         )
 
-        top_debtors = Customer.objects.filter(total_debt__gt=0).order_by(
-            "-total_debt"
-        )[:5]
+        top_debtors = Customer.objects.filter(total_debt__gt=0).order_by("-total_debt")[
+            :5
+        ]
 
         # Customer debt (snapshot, time-independent)
         total_customer_debt = (
@@ -1390,7 +1422,9 @@ class SupplierDetailView(AdminOnlyMixin, View):
                     return redirect("supplier_detail", pk=pk)
                 with transaction.atomic():
                     try:
-                        barter_product = Product.objects.select_for_update().get(pk=barter_product_id)
+                        barter_product = Product.objects.select_for_update().get(
+                            pk=barter_product_id
+                        )
                     except Product.DoesNotExist:
                         return redirect("supplier_detail", pk=pk)
                     if barter_product.quantity < barter_quantity:
@@ -1442,13 +1476,18 @@ class PurchaseDeleteView(AdminOnlyMixin, View):
         # Don't delete if removing the received stock would go negative
         # (the goods have already been sold to customers).
         if purchase.product:
-            current = Product.objects.filter(pk=purchase.product.pk).values_list("quantity", flat=True).first() or 0
+            current = (
+                Product.objects.filter(pk=purchase.product.pk)
+                .values_list("quantity", flat=True)
+                .first()
+                or 0
+            )
             if current < purchase.quantity:
                 messages.error(
                     request,
                     f"Xaridni o'chirib bo'lmaydi: '{purchase.product.name}' "
                     f"hozir omborda {current} ta, lekin xarid {purchase.quantity} ta edi "
-                    f"(qisman sotilgan). Avval mahsulotni qo'lda to'g'rilang."
+                    f"(qisman sotilgan). Avval mahsulotni qo'lda to'g'rilang.",
                 )
                 return redirect("supplier_detail", pk=supplier_pk)
 

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path
+from finance import api as bot_api
 from finance.views import (
     LoginView, LogoutView,
     OrderView, CustomerView, DebtView, ProductView, StatisticsView, ProductDeleteView,
@@ -15,6 +16,14 @@ from finance.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Bot API (separate-server Telegram bot, X-Bot-Token header required)
+    path('api/bot/customers/', bot_api.customers_list, name='bot_customers_list'),
+    path('api/bot/customers/by-phone/', bot_api.customer_by_phone, name='bot_customer_by_phone'),
+    path('api/bot/customers/<int:customer_id>/summary/', bot_api.customer_summary, name='bot_customer_summary'),
+    path('api/bot/customers/<int:customer_id>/combined/', bot_api.customer_combined, name='bot_customer_combined'),
+    path('api/bot/suppliers/by-phone/', bot_api.supplier_by_phone, name='bot_supplier_by_phone'),
+    path('api/bot/suppliers/<int:supplier_id>/report/', bot_api.supplier_report, name='bot_supplier_report'),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

@@ -1,7 +1,12 @@
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Shared secret used by the Telegram bot to authenticate against /api/bot/*.
+# The bot lives on a separate server and reaches Django over HTTP.
+BOT_API_TOKEN = os.environ.get('BOT_API_TOKEN', '')
 
 
 # Quick-start development settings - unsuitable for production
