@@ -931,6 +931,31 @@ class StatisticsView(AdminOnlyMixin, View):
             "orders_revenue": order_aggs["revenue"] or 0,
         }
 
+    def _sales_profit_for_period(self, date_from, date_to):
+        orders = list(
+            Order.objects.filter(order_date__gte=date_from, order_date__lte=date_to)
+            .select_related('product')
+        )
+        revenue = sum(o.total_price for o in orders)
+        product_ids = {o.product_id for o in orders if o.product_id}
+        last_price = {}
+        for pid in product_ids:
+            p = (
+                Purchase.objects
+                .filter(product_id=pid, price_per_unit__isnull=False)
+                .order_by('-purchase_date', '-id')
+                .values('price_per_unit')
+                .first()
+            )
+            if p:
+                last_price[pid] = p['price_per_unit']
+        cost = sum(
+            o.quantity * last_price[o.product_id]
+            for o in orders
+            if o.product_id and o.product_id in last_price
+        )
+        return {'revenue': revenue, 'cost': cost, 'profit': revenue - cost, 'orders_count': len(orders)}
+
     def get(self, request):
         import datetime as _dt
 
@@ -959,32 +984,46 @@ class StatisticsView(AdminOnlyMixin, View):
         month_stats = self._period_stats(month_start, month_end)
         year_stats = self._period_stats(year_start, year_end)
 
-        # Sotuv foydasi: bugungi buyurtmalar sotuv narxi − oxirgi xarid narxi
-        _today_orders = list(
-            Order.objects.filter(order_date=today).select_related('product')
-        )
-        today_sales_revenue = sum(o.total_price for o in _today_orders)
+        today_sales = self._sales_profit_for_period(today, today)
+        week_sales = self._sales_profit_for_period(week_start, week_end)
+        month_sales = self._sales_profit_for_period(month_start, month_end)
 
-        # Har bir mahsulot uchun oxirgi xarid narxini topamiz (Purchase.price_per_unit)
-        product_ids = {o.product_id for o in _today_orders if o.product_id}
-        last_purchase_price = {}
-        for pid in product_ids:
-            purchase = (
-                Purchase.objects
-                .filter(product_id=pid, price_per_unit__isnull=False)
-                .order_by('-purchase_date', '-id')
-                .values('price_per_unit')
-                .first()
-            )
-            if purchase:
-                last_purchase_price[pid] = purchase['price_per_unit']
+        # Week chart: each day Mon–Sun of current week
+        week_chart = []
+        _max_abs = 1
+        for i in range(7):
+            d = week_start + _dt.timedelta(days=i)
+            ds = self._period_stats(d, d)
+            week_chart.append({
+                'label': d.strftime('%d.%m'),
+                'weekday': ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'][d.weekday()],
+                'profit': ds['profit'],
+                'is_today': d == today,
+            })
+            if abs(ds['profit']) > _max_abs:
+                _max_abs = abs(ds['profit'])
+        for d in week_chart:
+            d['bar_pct'] = round(abs(d['profit']) / _max_abs * 100) if d['profit'] != 0 else 0
 
-        today_sales_cost = sum(
-            o.quantity * last_purchase_price[o.product_id]
-            for o in _today_orders
-            if o.product_id and o.product_id in last_purchase_price
-        )
-        today_sales_profit = today_sales_revenue - today_sales_cost
+        # Month chart: weekly buckets within current month
+        month_chart = []
+        _max_abs = 1
+        cur = month_start
+        while cur <= month_end:
+            week_mon = cur - _dt.timedelta(days=cur.weekday())
+            bucket_start = max(week_mon, month_start)
+            bucket_end = min(week_mon + _dt.timedelta(days=6), month_end)
+            ms = self._period_stats(bucket_start, bucket_end)
+            month_chart.append({
+                'label': f'{bucket_start.strftime("%d")}-{bucket_end.strftime("%d.%m")}',
+                'profit': ms['profit'],
+                'is_today': bucket_start <= today <= bucket_end,
+            })
+            if abs(ms['profit']) > _max_abs:
+                _max_abs = abs(ms['profit'])
+            cur = bucket_end + _dt.timedelta(days=1)
+        for d in month_chart:
+            d['bar_pct'] = round(abs(d['profit']) / _max_abs * 100) if d['profit'] != 0 else 0
 
         # Yesterday (for delta vs today)
         yesterday = today - _dt.timedelta(days=1)
@@ -1156,14 +1195,16 @@ class StatisticsView(AdminOnlyMixin, View):
         context = {
             "today_label": today.strftime("%d.%m.%Y"),
             "today_stats": today_stats,
-            "today_sales_revenue": today_sales_revenue,
-            "today_sales_cost": today_sales_cost,
-            "today_sales_profit": today_sales_profit,
+            "today_sales": today_sales,
             "week_stats": week_stats,
+            "week_sales": week_sales,
             "month_stats": month_stats,
+            "month_sales": month_sales,
             "year_stats": year_stats,
             "today_profit_delta": today_profit_delta,
             "last_7_days": last_7_days,
+            "week_chart": week_chart,
+            "month_chart": month_chart,
             "monthly_data": monthly_data,
             "top_products": top_products,
             "top_debtors": top_debtors,

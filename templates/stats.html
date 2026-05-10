@@ -2,173 +2,78 @@
 {% load custom_filters %}
 {% block content %}
 
-<!-- Header -->
+<!-- Header + Period Selector -->
 <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
     <div>
         <h2 class="text-xl font-bold text-gray-800">Statistika</h2>
         <p class="text-xs text-gray-400 mt-0.5">Bugun: <span class="font-semibold text-gray-600">{{ today_label }}</span></p>
     </div>
+    <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <button id="tab-today" onclick="setPeriod('today')"
+            class="px-4 py-2 rounded-lg text-sm font-semibold transition-all">Bugun</button>
+        <button id="tab-week" onclick="setPeriod('week')"
+            class="px-4 py-2 rounded-lg text-sm font-semibold transition-all">Bu hafta</button>
+        <button id="tab-month" onclick="setPeriod('month')"
+            class="px-4 py-2 rounded-lg text-sm font-semibold transition-all">Bu oy</button>
+    </div>
 </div>
 
-<!-- HERO: Today's cash-flow profit -->
-<div class="bg-gradient-to-br {% if today_stats.profit >= 0 %}from-emerald-500 to-emerald-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-6 sm:p-7 mb-5 shadow-md text-white">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="min-w-0">
-            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Bugungi Foyda</p>
-            <p class="text-4xl sm:text-5xl font-black mt-2 leading-none tracking-tight">
+<!-- ===== BUGUN ===== -->
+<div id="period-today" class="period-content hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <!-- Foyda (pul oqimi) -->
+        <div class="bg-gradient-to-br {% if today_stats.profit >= 0 %}from-blue-500 to-blue-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-5 sm:p-6 text-white shadow-md">
+            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Foyda (pul oqimi)</p>
+            <p class="text-3xl sm:text-4xl font-black mt-2 leading-none tracking-tight">
                 {% if today_stats.profit >= 0 %}+{% endif %}{{ today_stats.profit|format_currency }}
-                <span class="text-lg font-semibold opacity-80 ml-1">so'm</span>
+                <span class="text-sm font-semibold opacity-70 ml-1">so'm</span>
             </p>
-            <p class="text-xs mt-3 opacity-90">
+            <p class="text-[10px] opacity-70 mt-1.5">
+                Mijoz to'lovi − Firma to'lovi − Xarajat
                 {% if today_profit_delta is not None %}
-                    {% if today_profit_delta >= 0 %}
-                    Kechagiga nisbatan <span class="font-bold">+{{ today_profit_delta }}%</span>
-                    {% else %}
-                    Kechagiga nisbatan <span class="font-bold">{{ today_profit_delta }}%</span>
-                    {% endif %}
-                {% else %}
-                    Bugun {{ today_stats.customer_payments_count }} ta to'lov · {{ today_stats.orders_count }} ta buyurtma
+                · <span class="font-bold">{% if today_profit_delta >= 0 %}+{% endif %}{{ today_profit_delta }}% kechagiga nisbatan</span>
                 {% endif %}
             </p>
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                    <p class="opacity-60">Mijoz to'l.</p>
+                    <p class="font-bold mt-0.5">+{{ today_stats.customer_payments|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Firma to'l.</p>
+                    <p class="font-bold mt-0.5">−{{ today_stats.supplier_payments|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Xarajat</p>
+                    <p class="font-bold mt-0.5">−{{ today_stats.expenses|format_currency }}</p>
+                </div>
+            </div>
         </div>
-        <div class="grid grid-cols-3 gap-3 sm:gap-5 text-right shrink-0">
-            <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Mijoz to'lovi</p>
-                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">+{{ today_stats.customer_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Firma to'lovi</p>
-                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">−{{ today_stats.supplier_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase opacity-70">Xarajat</p>
-                <p class="text-sm sm:text-base font-bold mt-0.5 whitespace-nowrap">−{{ today_stats.expenses|format_currency }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Formula explainer -->
-    <div class="mt-5 pt-4 border-t border-white/20 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold opacity-90">
-        <span>Foyda = Mijoz to'lovi − Firma to'lovi − Xarajat</span>
-        <span class="opacity-60">·</span>
-        <span>{{ today_stats.orders_count }} ta yangi buyurtma (qarzga)</span>
-    </div>
-</div>
-
-<!-- Today's sales profit (gross margin: selling price − purchase price) -->
-<div class="bg-white border border-gray-200 rounded-2xl p-5 mb-5 shadow-sm">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <p class="text-[11px] font-bold tracking-widest uppercase text-gray-400">Bugungi Sotuv Foydasi</p>
-            <p class="text-3xl font-black mt-1 leading-none {% if today_sales_profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
-                {% if today_sales_profit >= 0 %}+{% endif %}{{ today_sales_profit|format_currency }}
-                <span class="text-base font-semibold text-gray-400 ml-1">so'm</span>
+        <!-- Sotuv Foydasi -->
+        <div class="bg-gradient-to-br {% if today_sales.profit >= 0 %}from-violet-500 to-violet-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-5 sm:p-6 text-white shadow-md">
+            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Sotuv Foydasi</p>
+            <p class="text-3xl sm:text-4xl font-black mt-2 leading-none tracking-tight">
+                {% if today_sales.profit >= 0 %}+{% endif %}{{ today_sales.profit|format_currency }}
+                <span class="text-sm font-semibold opacity-70 ml-1">so'm</span>
             </p>
-            <p class="text-[11px] text-gray-400 mt-1.5">Sotuv − Sotib olish narxi · {{ today_stats.orders_count }} ta buyurtma</p>
-        </div>
-        <div class="grid grid-cols-2 gap-4 text-right shrink-0">
-            <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase text-gray-400">Sotuv narxi</p>
-                <p class="text-sm font-bold mt-0.5 text-emerald-600 whitespace-nowrap">+{{ today_sales_revenue|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold tracking-wider uppercase text-gray-400">Sotib olish narxi</p>
-                <p class="text-sm font-bold mt-0.5 text-orange-500 whitespace-nowrap">−{{ today_sales_cost|format_currency }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Period quick cards: This week / month / year -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-
-    <!-- Week -->
-    <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Shu hafta</p>
-            <span class="text-[10px] text-gray-400">{{ week_stats.customer_payments_count }} to'lov</span>
-        </div>
-        <p class="text-2xl font-black {% if week_stats.profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %} leading-none">
-            {% if week_stats.profit >= 0 %}+{% endif %}{{ week_stats.profit|format_currency }}
-        </p>
-        <p class="text-[10px] text-gray-400 font-semibold mt-1">FOYDA · so'm</p>
-        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[11px]">
-            <div>
-                <p class="text-gray-400">Mijoz to'l.</p>
-                <p class="font-bold text-emerald-600">+{{ week_stats.customer_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400">Firma to'l.</p>
-                <p class="font-bold text-orange-500">−{{ week_stats.supplier_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400">Xarajat</p>
-                <p class="font-bold text-gray-600">−{{ week_stats.expenses|format_currency }}</p>
+            <p class="text-[10px] opacity-70 mt-1.5">Sotuv narxi − Sotib olish narxi · {{ today_sales.orders_count }} ta buyurtma</p>
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                    <p class="opacity-60">Sotuv narxi</p>
+                    <p class="font-bold mt-0.5">+{{ today_sales.revenue|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Sotib olish</p>
+                    <p class="font-bold mt-0.5">−{{ today_sales.cost|format_currency }}</p>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Month -->
-    <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">{{ current_month_label }}</p>
-            <span class="text-[10px] text-gray-400">{{ month_stats.customer_payments_count }} to'lov</span>
-        </div>
-        <p class="text-2xl font-black {% if month_stats.profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %} leading-none">
-            {% if month_stats.profit >= 0 %}+{% endif %}{{ month_stats.profit|format_currency }}
-        </p>
-        <p class="text-[10px] text-gray-400 font-semibold mt-1">FOYDA · so'm</p>
-        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[11px]">
-            <div>
-                <p class="text-gray-400">Mijoz to'l.</p>
-                <p class="font-bold text-emerald-600">+{{ month_stats.customer_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400">Firma to'l.</p>
-                <p class="font-bold text-orange-500">−{{ month_stats.supplier_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400">Xarajat</p>
-                <p class="font-bold text-gray-600">−{{ month_stats.expenses|format_currency }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Year -->
-    <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Shu yil</p>
-            <span class="text-[10px] text-gray-400">{{ year_stats.customer_payments_count }} to'lov</span>
-        </div>
-        <p class="text-2xl font-black {% if year_stats.profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %} leading-none">
-            {% if year_stats.profit >= 0 %}+{% endif %}{{ year_stats.profit|format_currency }}
-        </p>
-        <p class="text-[10px] text-gray-400 font-semibold mt-1">FOYDA · so'm</p>
-        <div class="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-[11px]">
-            <div>
-                <p class="text-gray-400">Mijoz to'l.</p>
-                <p class="font-bold text-emerald-600">+{{ year_stats.customer_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400">Firma to'l.</p>
-                <p class="font-bold text-orange-500">−{{ year_stats.supplier_payments|format_currency }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400">Xarajat</p>
-                <p class="font-bold text-gray-600">−{{ year_stats.expenses|format_currency }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Last 7 days mini-chart + Debt summary -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-
-    <!-- 7 days bar chart -->
-    <div class="lg:col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <!-- Chart: oxirgi 7 kun -->
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <span class="text-sm font-semibold text-gray-800">Oxirgi 7 kun foydasi</span>
-            <span class="text-xs text-gray-400">har kungi sof foyda</span>
+            <span class="text-xs text-gray-400">pul oqimi foydasi</span>
         </div>
         <div class="px-5 pt-5 pb-4">
             <div class="flex items-end justify-between gap-2 h-44">
@@ -190,23 +95,170 @@
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Debt summary -->
-    <div class="flex flex-col gap-3">
-        <div class="bg-white border border-gray-200 rounded-xl p-4 border-l-4 {% if total_customer_debt > 0 %}border-l-amber-400{% else %}border-l-gray-200{% endif %}">
-            <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Mijozlar qarzi</p>
-            <p class="text-2xl font-black {% if total_customer_debt > 0 %}text-amber-600{% else %}text-gray-600{% endif %} leading-none mt-2">
-                {{ total_customer_debt|format_currency }}
+<!-- ===== BU HAFTA ===== -->
+<div id="period-week" class="period-content hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <!-- Foyda -->
+        <div class="bg-gradient-to-br {% if week_stats.profit >= 0 %}from-blue-500 to-blue-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-5 sm:p-6 text-white shadow-md">
+            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Foyda (pul oqimi)</p>
+            <p class="text-3xl sm:text-4xl font-black mt-2 leading-none tracking-tight">
+                {% if week_stats.profit >= 0 %}+{% endif %}{{ week_stats.profit|format_currency }}
+                <span class="text-sm font-semibold opacity-70 ml-1">so'm</span>
             </p>
-            <p class="text-xs text-gray-400 mt-1">so'm</p>
+            <p class="text-[10px] opacity-70 mt-1.5">Mijoz to'lovi − Firma to'lovi − Xarajat · {{ week_stats.customer_payments_count }} to'lov</p>
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                    <p class="opacity-60">Mijoz to'l.</p>
+                    <p class="font-bold mt-0.5">+{{ week_stats.customer_payments|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Firma to'l.</p>
+                    <p class="font-bold mt-0.5">−{{ week_stats.supplier_payments|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Xarajat</p>
+                    <p class="font-bold mt-0.5">−{{ week_stats.expenses|format_currency }}</p>
+                </div>
+            </div>
         </div>
-        <div class="bg-white border border-gray-200 rounded-xl p-4 border-l-4 {% if total_supplier_debt > 0 %}border-l-orange-400{% else %}border-l-gray-200{% endif %}">
-            <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Firmalarga qarz</p>
-            <p class="text-2xl font-black {% if total_supplier_debt > 0 %}text-orange-600{% else %}text-gray-600{% endif %} leading-none mt-2">
-                {{ total_supplier_debt|format_currency }}
+        <!-- Sotuv Foydasi -->
+        <div class="bg-gradient-to-br {% if week_sales.profit >= 0 %}from-violet-500 to-violet-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-5 sm:p-6 text-white shadow-md">
+            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Sotuv Foydasi</p>
+            <p class="text-3xl sm:text-4xl font-black mt-2 leading-none tracking-tight">
+                {% if week_sales.profit >= 0 %}+{% endif %}{{ week_sales.profit|format_currency }}
+                <span class="text-sm font-semibold opacity-70 ml-1">so'm</span>
             </p>
-            <p class="text-xs text-gray-400 mt-1">so'm</p>
+            <p class="text-[10px] opacity-70 mt-1.5">Sotuv narxi − Sotib olish narxi · {{ week_sales.orders_count }} ta buyurtma</p>
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                    <p class="opacity-60">Sotuv narxi</p>
+                    <p class="font-bold mt-0.5">+{{ week_sales.revenue|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Sotib olish</p>
+                    <p class="font-bold mt-0.5">−{{ week_sales.cost|format_currency }}</p>
+                </div>
+            </div>
         </div>
+    </div>
+    <!-- Chart: bu hafta kunlar -->
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <span class="text-sm font-semibold text-gray-800">Bu hafta kunlar bo'yicha</span>
+            <span class="text-xs text-gray-400">pul oqimi foydasi</span>
+        </div>
+        <div class="px-5 pt-5 pb-4">
+            <div class="flex items-end justify-between gap-2 h-44">
+                {% for d in week_chart %}
+                <div class="flex-1 flex flex-col items-center gap-2 group">
+                    <div class="w-full flex flex-col items-center justify-end h-32 relative">
+                        <div class="absolute -top-6 text-[10px] font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md px-2 py-0.5 rounded whitespace-nowrap z-10">
+                            {{ d.profit|format_currency }}
+                        </div>
+                        <div class="w-full {% if d.profit < 0 %}bg-red-400{% elif d.is_today %}bg-emerald-500{% elif d.profit > 0 %}bg-blue-400{% else %}bg-gray-200{% endif %} rounded-t-md transition-all"
+                            style="height:{{ d.bar_pct }}%; min-height:4px;"></div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[10px] font-bold {% if d.is_today %}text-emerald-600{% else %}text-gray-500{% endif %}">{{ d.weekday }}</div>
+                        <div class="text-[9px] text-gray-400">{{ d.label }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== BU OY ===== -->
+<div id="period-month" class="period-content hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <!-- Foyda -->
+        <div class="bg-gradient-to-br {% if month_stats.profit >= 0 %}from-blue-500 to-blue-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-5 sm:p-6 text-white shadow-md">
+            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Foyda (pul oqimi)</p>
+            <p class="text-3xl sm:text-4xl font-black mt-2 leading-none tracking-tight">
+                {% if month_stats.profit >= 0 %}+{% endif %}{{ month_stats.profit|format_currency }}
+                <span class="text-sm font-semibold opacity-70 ml-1">so'm</span>
+            </p>
+            <p class="text-[10px] opacity-70 mt-1.5">Mijoz to'lovi − Firma to'lovi − Xarajat · {{ month_stats.customer_payments_count }} to'lov</p>
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                    <p class="opacity-60">Mijoz to'l.</p>
+                    <p class="font-bold mt-0.5">+{{ month_stats.customer_payments|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Firma to'l.</p>
+                    <p class="font-bold mt-0.5">−{{ month_stats.supplier_payments|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Xarajat</p>
+                    <p class="font-bold mt-0.5">−{{ month_stats.expenses|format_currency }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Sotuv Foydasi -->
+        <div class="bg-gradient-to-br {% if month_sales.profit >= 0 %}from-violet-500 to-violet-700{% else %}from-red-500 to-red-700{% endif %} rounded-2xl p-5 sm:p-6 text-white shadow-md">
+            <p class="text-[11px] font-bold tracking-widest uppercase opacity-80">Sotuv Foydasi</p>
+            <p class="text-3xl sm:text-4xl font-black mt-2 leading-none tracking-tight">
+                {% if month_sales.profit >= 0 %}+{% endif %}{{ month_sales.profit|format_currency }}
+                <span class="text-sm font-semibold opacity-70 ml-1">so'm</span>
+            </p>
+            <p class="text-[10px] opacity-70 mt-1.5">Sotuv narxi − Sotib olish narxi · {{ month_sales.orders_count }} ta buyurtma</p>
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                    <p class="opacity-60">Sotuv narxi</p>
+                    <p class="font-bold mt-0.5">+{{ month_sales.revenue|format_currency }}</p>
+                </div>
+                <div>
+                    <p class="opacity-60">Sotib olish</p>
+                    <p class="font-bold mt-0.5">−{{ month_sales.cost|format_currency }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Chart: bu oy haftalik -->
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <span class="text-sm font-semibold text-gray-800">{{ current_month_label }} haftalik</span>
+            <span class="text-xs text-gray-400">pul oqimi foydasi</span>
+        </div>
+        <div class="px-5 pt-5 pb-4">
+            <div class="flex items-end justify-between gap-3 h-44">
+                {% for d in month_chart %}
+                <div class="flex-1 flex flex-col items-center gap-2 group">
+                    <div class="w-full flex flex-col items-center justify-end h-32 relative">
+                        <div class="absolute -top-6 text-[10px] font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-md px-2 py-0.5 rounded whitespace-nowrap z-10">
+                            {{ d.profit|format_currency }}
+                        </div>
+                        <div class="w-full {% if d.profit < 0 %}bg-red-400{% elif d.is_today %}bg-emerald-500{% elif d.profit > 0 %}bg-blue-400{% else %}bg-gray-200{% endif %} rounded-t-md transition-all"
+                            style="height:{{ d.bar_pct }}%; min-height:4px;"></div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[9px] text-gray-400">{{ d.label }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Debt summary (always visible) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+    <div class="bg-white border border-gray-200 rounded-xl p-4 border-l-4 {% if total_customer_debt > 0 %}border-l-amber-400{% else %}border-l-gray-200{% endif %}">
+        <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Mijozlar qarzi</p>
+        <p class="text-2xl font-black {% if total_customer_debt > 0 %}text-amber-600{% else %}text-gray-600{% endif %} leading-none mt-2">
+            {{ total_customer_debt|format_currency }}
+        </p>
+        <p class="text-xs text-gray-400 mt-1">so'm</p>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl p-4 border-l-4 {% if total_supplier_debt > 0 %}border-l-orange-400{% else %}border-l-gray-200{% endif %}">
+        <p class="text-[11px] font-bold tracking-wider uppercase text-gray-400">Firmalarga qarz</p>
+        <p class="text-2xl font-black {% if total_supplier_debt > 0 %}text-orange-600{% else %}text-gray-600{% endif %} leading-none mt-2">
+            {{ total_supplier_debt|format_currency }}
+        </p>
+        <p class="text-xs text-gray-400 mt-1">so'm</p>
     </div>
 </div>
 
@@ -410,6 +462,27 @@
 {% endif %}
 
 <script>
+function setPeriod(period) {
+    ['today', 'week', 'month'].forEach(function(p) {
+        document.getElementById('period-' + p).classList.toggle('hidden', p !== period);
+        var tab = document.getElementById('tab-' + p);
+        if (p === period) {
+            tab.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+            tab.classList.remove('text-gray-500');
+        } else {
+            tab.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+            tab.classList.add('text-gray-500');
+        }
+    });
+    try { localStorage.setItem('stats_period', period); } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var saved = 'today';
+    try { saved = localStorage.getItem('stats_period') || 'today'; } catch(e) {}
+    setPeriod(saved);
+});
+
 function toggleFirma(id) {
     const el = document.getElementById(id);
     const arrow = document.getElementById('arrow-' + id);
