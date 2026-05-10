@@ -133,6 +133,14 @@
                     <td class="px-5 py-3 text-right font-black text-gray-800">{{ total_quantity|format_currency }}</td>
                     <td></td>
                 </tr>
+                <tr class="border-t border-gray-100 bg-blue-50/40">
+                    <td colspan="5" class="px-5 py-3 text-[11px] font-bold text-blue-700 uppercase">Ombor qiymati (jami)</td>
+                    <td class="px-5 py-3 text-right whitespace-nowrap">
+                        <span class="font-black text-blue-800">{{ total_inventory_value|format_currency }}</span>
+                        <span class="text-xs text-blue-500 ml-0.5">so'm</span>
+                    </td>
+                    <td></td>
+                </tr>
             </tfoot>
         </table>
     </div>

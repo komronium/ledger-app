@@ -847,15 +847,18 @@ class ProductView(AdminOnlyMixin, View):
                 free_map[pid] = free_map.get(pid, 0) + free
 
         total_deducted = 0
+        total_inventory_value = 0
         for product in products:
             product.total_deducted = deducted_map.get(product.id, 0)
             product.total_free = free_map.get(product.id, 0)
             total_deducted += product.total_deducted
+            total_inventory_value += (product.price or 0) * (product.quantity or 0)
 
         context = {
             "products": products,
             "suppliers": Supplier.objects.all(),
             "total_quantity": total_deducted,
+            "total_inventory_value": total_inventory_value,
             "page": "product",
             "selected_month": selected_month,
         }
