@@ -1,0 +1,31 @@
+[Unit]
+Description=Qarz Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ledger-app
+EnvironmentFile=/root/ledger-app/.env
+ExecStart=/root/ledger-app/env/bin/python run_bot.py
+
+# Restart on crash with backoff (matches the in-process reconnect loop)
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+
+# Stdout/stderr → journald (auto-rotated, size-capped via journald.conf)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=qarz-bot
+
+LimitNOFILE=4096
+
+# Light hardening (ProtectHome dropped because the project lives under /root)
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
