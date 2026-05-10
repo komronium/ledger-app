@@ -959,18 +959,30 @@ class StatisticsView(AdminOnlyMixin, View):
         month_stats = self._period_stats(month_start, month_end)
         year_stats = self._period_stats(year_start, year_end)
 
-        # Sotuv foydasi: bugungi buyurtmalar sotuv narxi − sotib olish narxi
-        _today_orders = Order.objects.filter(order_date=today).select_related('product')
-        today_sales_revenue = int(_today_orders.aggregate(s=models.Sum('total_price'))['s'] or 0)
-        today_sales_cost = int(
-            _today_orders.aggregate(
-                s=models.Sum(
-                    models.ExpressionWrapper(
-                        models.F('quantity') * models.F('product__price'),
-                        output_field=models.IntegerField(),
-                    )
-                )
-            )['s'] or 0
+        # Sotuv foydasi: bugungi buyurtmalar sotuv narxi − oxirgi xarid narxi
+        _today_orders = list(
+            Order.objects.filter(order_date=today).select_related('product')
+        )
+        today_sales_revenue = sum(o.total_price for o in _today_orders)
+
+        # Har bir mahsulot uchun oxirgi xarid narxini topamiz (Purchase.price_per_unit)
+        product_ids = {o.product_id for o in _today_orders if o.product_id}
+        last_purchase_price = {}
+        for pid in product_ids:
+            purchase = (
+                Purchase.objects
+                .filter(product_id=pid, price_per_unit__isnull=False)
+                .order_by('-purchase_date', '-id')
+                .values('price_per_unit')
+                .first()
+            )
+            if purchase:
+                last_purchase_price[pid] = purchase['price_per_unit']
+
+        today_sales_cost = sum(
+            o.quantity * last_purchase_price[o.product_id]
+            for o in _today_orders
+            if o.product_id and o.product_id in last_purchase_price
         )
         today_sales_profit = today_sales_revenue - today_sales_cost
 
