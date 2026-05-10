@@ -959,6 +959,21 @@ class StatisticsView(AdminOnlyMixin, View):
         month_stats = self._period_stats(month_start, month_end)
         year_stats = self._period_stats(year_start, year_end)
 
+        # Sotuv foydasi: bugungi buyurtmalar sotuv narxi − sotib olish narxi
+        _today_orders = Order.objects.filter(order_date=today).select_related('product')
+        today_sales_revenue = int(_today_orders.aggregate(s=models.Sum('total_price'))['s'] or 0)
+        today_sales_cost = int(
+            _today_orders.aggregate(
+                s=models.Sum(
+                    models.ExpressionWrapper(
+                        models.F('quantity') * models.F('product__price'),
+                        output_field=models.IntegerField(),
+                    )
+                )
+            )['s'] or 0
+        )
+        today_sales_profit = today_sales_revenue - today_sales_cost
+
         # Yesterday (for delta vs today)
         yesterday = today - _dt.timedelta(days=1)
         yesterday_stats = self._period_stats(yesterday, yesterday)
@@ -1129,6 +1144,9 @@ class StatisticsView(AdminOnlyMixin, View):
         context = {
             "today_label": today.strftime("%d.%m.%Y"),
             "today_stats": today_stats,
+            "today_sales_revenue": today_sales_revenue,
+            "today_sales_cost": today_sales_cost,
+            "today_sales_profit": today_sales_profit,
             "week_stats": week_stats,
             "month_stats": month_stats,
             "year_stats": year_stats,

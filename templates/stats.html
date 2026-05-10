@@ -55,6 +55,30 @@
     </div>
 </div>
 
+<!-- Today's sales profit (gross margin: selling price − purchase price) -->
+<div class="bg-white border border-gray-200 rounded-2xl p-5 mb-5 shadow-sm">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <p class="text-[11px] font-bold tracking-widest uppercase text-gray-400">Bugungi Sotuv Foydasi</p>
+            <p class="text-3xl font-black mt-1 leading-none {% if today_sales_profit >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                {% if today_sales_profit >= 0 %}+{% endif %}{{ today_sales_profit|format_currency }}
+                <span class="text-base font-semibold text-gray-400 ml-1">so'm</span>
+            </p>
+            <p class="text-[11px] text-gray-400 mt-1.5">Sotuv − Sotib olish narxi · {{ today_stats.orders_count }} ta buyurtma</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-right shrink-0">
+            <div>
+                <p class="text-[10px] font-bold tracking-wider uppercase text-gray-400">Sotuv narxi</p>
+                <p class="text-sm font-bold mt-0.5 text-emerald-600 whitespace-nowrap">+{{ today_sales_revenue|format_currency }}</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold tracking-wider uppercase text-gray-400">Sotib olish narxi</p>
+                <p class="text-sm font-bold mt-0.5 text-orange-500 whitespace-nowrap">−{{ today_sales_cost|format_currency }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Period quick cards: This week / month / year -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
 
