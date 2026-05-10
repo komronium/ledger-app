@@ -4,6 +4,14 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env from project root so settings work whether the process is started
+# with shell env vars or relies on the .env file alone.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 # Shared secret used by the Telegram bot to authenticate against /api/bot/*.
 # The bot lives on a separate server and reaches Django over HTTP.
 BOT_API_TOKEN = os.environ.get('BOT_API_TOKEN', '')
