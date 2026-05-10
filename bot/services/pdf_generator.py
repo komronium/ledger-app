@@ -19,20 +19,34 @@ logger = logging.getLogger(__name__)
 
 # Font registration for Cyrillic support
 def register_cyrillic_fonts():
-    """Register DejaVu fonts with Cyrillic support"""
+    """Register DejaVu fonts (regular + bold) and the family mapping that
+    ReportLab's paraparser needs to resolve <b>...</b> inside paragraphs.
+    Without registerFontFamily, ps2tt('dejavusans-bold') raises ValueError.
+    """
     dejavu_paths = {
         'DejaVuSans': '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
         'DejaVuSans-Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     }
-    
+
+    registered = set()
     for font_name, font_path in dejavu_paths.items():
         if os.path.exists(font_path):
             try:
                 pdfmetrics.registerFont(TTFont(font_name, font_path))
+                registered.add(font_name)
                 logger.info(f"Registered font: {font_name}")
             except Exception as e:
                 logger.error(f"Failed to register font {font_name}: {e}")
-    
+
+    if 'DejaVuSans' in registered:
+        pdfmetrics.registerFontFamily(
+            'DejaVuSans',
+            normal='DejaVuSans',
+            bold='DejaVuSans-Bold' if 'DejaVuSans-Bold' in registered else 'DejaVuSans',
+            italic='DejaVuSans',
+            boldItalic='DejaVuSans-Bold' if 'DejaVuSans-Bold' in registered else 'DejaVuSans',
+        )
+
     return True
 
 # Register fonts at module load
